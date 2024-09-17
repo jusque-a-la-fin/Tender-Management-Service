@@ -4,7 +4,7 @@
 git clone git@github.com:jusque-a-la-fin/Tender-Management-Service.git && cd Tender-Management-Service && docker compose up --build
 ```
 ## Замечания
--  Таблицы для остальных сущностей здесь: [sql](init.sql) 
+-  Таблицы для остальных сущностей здесь: [init.sql](init.sql) 
 - Выполнены все дополнительные требования:
   ### Дополнительные требования
 
