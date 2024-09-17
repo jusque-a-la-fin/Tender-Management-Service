@@ -23,24 +23,12 @@ func (repo *TenderDBRepository) EditTender(tei TenderEditionInput, tenderID, use
 		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение id для username: %v", err)
 	}
 
+	valid, err = CheckRights(repo.dtb, tenderID, userID)
+	if !valid || err != nil {
+		return nil, 403, err
+	}
+
 	query := `
-	         SELECT EXISTS 
-	            (SELECT 1 
-				FROM tender
-                WHERE id = $1 AND user_id = $2) 
-				AS result`
-
-	var hasRights bool
-	err = repo.dtb.QueryRow(query, tenderID, userID).Scan(&hasRights)
-	if err != nil {
-		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: проверка прав доступа: %v", err)
-	}
-
-	if !hasRights {
-		return nil, 403, nil
-	}
-
-	query = `
 	        SELECT current_version
 		    FROM tender
 		    WHERE id = $1;`

@@ -25,13 +25,13 @@ func (hnd *BidHandler) CreateBid(wrt http.ResponseWriter, rqt *http.Request) {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+			return
 		}
-		return
 	}
 
 	bdName := utf8.RuneCountInString(brq.Name)
 	bdDesc := utf8.RuneCountInString(brq.Description)
-	tndID := utf8.RuneCountInString(brq.TenderId)
+	tndID := utf8.RuneCountInString(brq.TenderID)
 	atID := utf8.RuneCountInString(brq.AuthorId)
 
 	switch {
@@ -76,7 +76,7 @@ func (hnd *BidHandler) CreateBid(wrt http.ResponseWriter, rqt *http.Request) {
 	bdi := bid.BidCreationInput{
 		Name:        brq.Name,
 		Description: brq.Description,
-		TenderId:    brq.TenderId,
+		TenderID:    brq.TenderID,
 		AuthorType:  bid.AuthorTypeEnum(brq.AuthorType),
 		AuthorId:    brq.AuthorId,
 	}
@@ -84,6 +84,7 @@ func (hnd *BidHandler) CreateBid(wrt http.ResponseWriter, rqt *http.Request) {
 	nbd, code, err := hnd.BidRepo.CreateBid(bdi)
 	if err != nil {
 		log.Println(err)
+		return
 	}
 
 	switch code {

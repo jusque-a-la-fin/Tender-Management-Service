@@ -23,8 +23,8 @@ func (hnd *TenderHandler) CreateTender(wrt http.ResponseWriter, rqt *http.Reques
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+			return
 		}
-		return
 	}
 
 	tdName := utf8.RuneCountInString(trq.Name)
@@ -36,24 +36,28 @@ func (hnd *TenderHandler) CreateTender(wrt http.ResponseWriter, rqt *http.Reques
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+			return
 		}
 
 	case tdDesc == 0 || tdDesc > 500:
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+			return
 		}
 
 	case tdOrgID == 0 || tdOrgID > 100:
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+			return
 		}
 
 	case trq.CreatorUsername == "":
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+			return
 		}
 	}
 
@@ -62,6 +66,7 @@ func (hnd *TenderHandler) CreateTender(wrt http.ResponseWriter, rqt *http.Reques
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+			return
 		}
 	}
 
@@ -75,6 +80,7 @@ func (hnd *TenderHandler) CreateTender(wrt http.ResponseWriter, rqt *http.Reques
 	tcu, code, err := hnd.TenderRepo.CreateTender(tci, trq.CreatorUsername, trq.OrganizationID)
 	if err != nil {
 		log.Println(err)
+		return
 	}
 
 	switch code {
@@ -83,16 +89,16 @@ func (hnd *TenderHandler) CreateTender(wrt http.ResponseWriter, rqt *http.Reques
 		errResp := handlers.RespondWithError(wrt, err, http.StatusUnauthorized)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
+			return
 		}
-		return
 
 	case 403:
 		err := "Недостаточно прав для выполнения действия"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
+			return
 		}
-		return
 	}
 
 	tender := tnd.GetCreatedTender(tci, *tcu, trq.OrganizationID)

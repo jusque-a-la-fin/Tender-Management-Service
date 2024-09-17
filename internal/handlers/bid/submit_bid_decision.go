@@ -53,7 +53,7 @@ func (hnd *BidHandler) SubmitBidDecision(wrt http.ResponseWriter, rqt *http.Requ
 	}
 
 	bsi := bid.BidSubmissionInput{
-		BID:      bidID,
+		BidID:    bidID,
 		Decision: bid.DecisionEnum(decision),
 		Username: username,
 	}

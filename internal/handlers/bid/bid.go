@@ -12,7 +12,7 @@ type BidHandler struct {
 type BidCreationReq struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	TenderId    string `json:"tenderId"`
+	TenderID    string `json:"tenderId"`
 	AuthorType  string `json:"authorType"`
 	AuthorId    string `json:"authorId"`
 }

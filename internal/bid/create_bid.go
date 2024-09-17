@@ -12,12 +12,12 @@ func (repo *BidDBRepository) CreateBid(bci BidCreationInput) (*Bid, int, error) 
 		return nil, 401, err
 	}
 
-	valid, err = checkAuthorRights(repo.dtb, bci.AuthorId)
+	valid, err = checkCreationRights(repo.dtb, bci.AuthorId)
 	if !valid || err != nil {
 		return nil, 403, err
 	}
 
-	valid, err = tender.CheckTender(repo.dtb, bci.TenderId)
+	valid, err = tender.CheckTender(repo.dtb, bci.TenderID)
 	if !valid || err != nil {
 		return nil, 404, err
 	}
@@ -28,7 +28,7 @@ func (repo *BidDBRepository) CreateBid(bci BidCreationInput) (*Bid, int, error) 
 	         VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at;`
 
 	var bidID, createdAt string
-	err = repo.dtb.QueryRow(query, status, bci.TenderId, bci.AuthorType, bci.AuthorId, version).Scan(&bidID, &createdAt)
+	err = repo.dtb.QueryRow(query, status, bci.TenderID, bci.AuthorType, bci.AuthorId, version).Scan(&bidID, &createdAt)
 	if err != nil {
 		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: создание тендера: %v", err)
 	}
@@ -46,9 +46,9 @@ func (repo *BidDBRepository) CreateBid(bci BidCreationInput) (*Bid, int, error) 
 		Name:        bci.Name,
 		Description: bci.Description,
 		Status:      status,
-		TenderId:    bci.TenderId,
+		TenderID:    bci.TenderID,
 		AuthorType:  bci.AuthorType,
-		AuthorId:    bci.AuthorId,
+		AuthorID:    bci.AuthorId,
 		Version:     version,
 		CreatedAt:   createdAt,
 	}

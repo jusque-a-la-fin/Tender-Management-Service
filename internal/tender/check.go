@@ -46,3 +46,21 @@ func CheckTenderAndVersion(dtb *sql.DB, version int32, tenderID string) (bool, e
 
 	return exists, nil
 }
+
+// CheckRights проверяет, есть ли у пользователя права на работу с тендером
+func CheckRights(dtb *sql.DB, tenderID, userID string) (bool, error) {
+	query := `
+	         SELECT EXISTS 
+	            (SELECT 1 
+				FROM tender
+                WHERE id = $1 AND user_id = $2) 
+				AS result`
+
+	var hasRights bool
+	err := dtb.QueryRow(query, tenderID, userID).Scan(&hasRights)
+	if err != nil {
+		return false, fmt.Errorf("ошибка запроса к базе данных: проверка прав доступа: %v", err)
+	}
+
+	return hasRights, nil
+}

@@ -27,8 +27,8 @@ func checkAuthor(dtb *sql.DB, authorId string, authorType AuthorTypeEnum) (bool,
 	return exists, nil
 }
 
-// checkAuthorRights проверяет, достаточно ли прав для выполнения действия
-func checkAuthorRights(dtb *sql.DB, authorId string) (bool, error) {
+// checkCreationRights проверяет, достаточно ли прав для создания предложения
+func checkCreationRights(dtb *sql.DB, authorId string) (bool, error) {
 	var hasRights bool
 
 	query := `
@@ -39,9 +39,26 @@ func checkAuthorRights(dtb *sql.DB, authorId string) (bool, error) {
 
 	err := dtb.QueryRow(query, authorId).Scan(&hasRights)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("ошибка запроса к базе данных: проверка прав для создания предложения: %v", err)
 	}
 
+	return hasRights, nil
+}
+
+// checkEditionRights проверяет, достаточно ли прав для изменения предложения
+func checkEditionRights(dtb *sql.DB, bidID, authorID string) (bool, error) {
+	var hasRights bool
+	query := `
+        SELECT EXISTS (
+            SELECT 1
+            FROM bid
+            WHERE id = $1 AND author_id = $2
+        );
+    `
+	err := dtb.QueryRow(query, bidID, authorID).Scan(&hasRights)
+	if err != nil {
+		return false, fmt.Errorf("ошибка запроса к базе данных: проверка прав для изменения предложения: %v", err)
+	}
 	return hasRights, nil
 }
 
@@ -65,7 +82,7 @@ func checkUsername(dtb *sql.DB, username string) (bool, error) {
 	return exists, nil
 }
 
-// checkBid проверяет, существует ли предложение.
+// checkBid проверяет, существует ли предложение
 func сheckBid(dtb *sql.DB, bidID string) (bool, error) {
 	var exists bool
 	query := `SELECT EXISTS(SELECT 1 FROM bid WHERE id = $1)`

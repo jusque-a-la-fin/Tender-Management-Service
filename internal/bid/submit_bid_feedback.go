@@ -7,7 +7,7 @@ import (
 
 // SubmitBidFeedback отправляет отзыв по предложению
 func (repo *BidDBRepository) SubmitBidFeedback(bfi BidFeedbackInput) (*Bid, int, error) {
-	valid, err := сheckBid(repo.dtb, bfi.BID)
+	valid, err := сheckBid(repo.dtb, bfi.BidID)
 	if !valid || err != nil {
 		return nil, 404, err
 	}
@@ -19,7 +19,7 @@ func (repo *BidDBRepository) SubmitBidFeedback(bfi BidFeedbackInput) (*Bid, int,
 
 	var tenderID string
 	query := `SELECT tender_id FROM bid WHERE id = $1;`
-	err = repo.dtb.QueryRow(query, bfi.BID).Scan(&tenderID)
+	err = repo.dtb.QueryRow(query, bfi.BidID).Scan(&tenderID)
 	if err != nil {
 		return nil, -1, err
 	}
@@ -56,7 +56,7 @@ func (repo *BidDBRepository) SubmitBidFeedback(bfi BidFeedbackInput) (*Bid, int,
 	    INSERT INTO bid_review (description, organization_id, user_id, bid_id)
 	    VALUES ($1, $2, $3, $4);`
 
-	result, err := repo.dtb.Exec(query, bfi.BidFeedback, organizationID, userID, bfi.BID)
+	result, err := repo.dtb.Exec(query, bfi.BidFeedback, organizationID, userID, bfi.BidID)
 	if err != nil {
 		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: добавление нового отзыва по предложению: %v", err)
 	}
@@ -70,7 +70,7 @@ func (repo *BidDBRepository) SubmitBidFeedback(bfi BidFeedbackInput) (*Bid, int,
 		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: не добавился отзыв по предложению")
 	}
 
-	bid, err := GetBid(repo.dtb, bfi.BID)
+	bid, err := GetBid(repo.dtb, bfi.BidID)
 	if err != nil {
 		return nil, -1, err
 	}

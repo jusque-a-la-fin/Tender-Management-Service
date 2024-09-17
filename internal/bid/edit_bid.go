@@ -18,7 +18,7 @@ func (repo *BidDBRepository) EditBid(bdi BidEditionInput, bidID, username string
 		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение id для username: %v", err)
 	}
 
-	valid, err = checkAuthorRights(repo.dtb, userID)
+	valid, err = checkEditionRights(repo.dtb, bidID, userID)
 	if !valid || err != nil {
 		return nil, 403, err
 	}

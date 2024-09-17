@@ -149,7 +149,7 @@ func swapParams(dtb *sql.DB, rollbackVersion int32, tenderID string) error {
 				tenderID)
 
 			if err != nil {
-				return fmt.Errorf("ошибка запроса к базе данных: обмен параметрами двух версий тендера: %v", err)
+				return fmt.Errorf("ошибка запроса к базе данных: обмен параметрами между двумя версиями тендера: %v", err)
 			}
 		}
 	}

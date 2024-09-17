@@ -11,9 +11,9 @@ type Bid struct {
 	Name        string         `json:"name"`
 	Description string         `json:"description"`
 	Status      StatusEnum     `json:"status"`
-	TenderId    string         `json:"tenderId"`
+	TenderID    string         `json:"tenderId"`
 	AuthorType  AuthorTypeEnum `json:"authorType"`
-	AuthorId    string         `json:"authorId"`
+	AuthorID    string         `json:"authorId"`
 	Version     int32          `json:"version"`
 	CreatedAt   string         `json:"createdAt"`
 }
@@ -49,6 +49,19 @@ type BidReviewsInput struct {
 	RequesterUsername string
 	Offset            int32
 	EndIndex          int32
+}
+
+type GetBidsInput struct {
+	TenderId string
+	Username string
+	Offset   int32
+	EndIndex int32
+}
+
+type BidRollbackInput struct {
+	BidID    string
+	Version  int32
+	Username string
 }
 
 func CheckDecision(decision string) bool {
@@ -87,7 +100,7 @@ func CheckStatusEnum(status string) bool {
 type BidCreationInput struct {
 	Name        string
 	Description string
-	TenderId    string
+	TenderID    string
 	AuthorType  AuthorTypeEnum
 	AuthorId    string
 }
@@ -107,14 +120,14 @@ const (
 
 // BidEditionInput - параметры, переданные пользователем серверу для отправки решения (одобрения или отклонения) по предложению
 type BidSubmissionInput struct {
-	BID      string
+	BidID    string
 	Decision DecisionEnum
 	Username string
 }
 
 // BidFeedbackInput - параметры, переданные пользователем серверу для отправки отзыва по предложению
 type BidFeedbackInput struct {
-	BID         string
+	BidID       string
 	BidFeedback string
 	Username    string
 }
@@ -132,8 +145,8 @@ func GetBid(dtb *sql.DB, bidID string) (*Bid, error) {
 		WHERE bd.id = $1
 	`
 
-	err := dtb.QueryRow(query, bidID).Scan(&nbd.Status, &nbd.TenderId, &nbd.AuthorType,
-		&nbd.AuthorId, &nbd.Version, &nbd.CreatedAt, &nbd.Name, &nbd.Description)
+	err := dtb.QueryRow(query, bidID).Scan(&nbd.Status, &nbd.TenderID, &nbd.AuthorType,
+		&nbd.AuthorID, &nbd.Version, &nbd.CreatedAt, &nbd.Name, &nbd.Description)
 
 	if err != nil {
 		return nil, fmt.Errorf("ошибка запроса к базе данных: извлечение параметров тендера: %v", err)

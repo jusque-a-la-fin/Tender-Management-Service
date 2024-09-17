@@ -53,7 +53,7 @@ func (hnd *BidHandler) SubmitBidFeedback(wrt http.ResponseWriter, rqt *http.Requ
 	}
 
 	bfi := bid.BidFeedbackInput{
-		BID:         bidID,
+		BidID:       bidID,
 		BidFeedback: bidFeedback,
 		Username:    username,
 	}

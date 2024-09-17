@@ -1,18 +1,18 @@
-package tender
+package bid
 
 import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strconv"
+	"tendermanagement/internal/bid"
 	"tendermanagement/internal/handlers"
 	"unicode/utf8"
 
 	"github.com/gorilla/mux"
 )
 
-// RollbackTender откатывает параметры тендера к указанной версии
-func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Request) {
+// UpdateBidStatus изменяет статус предложения по его уникальному идентификатору
+func (hnd *BidHandler) UpdateBidStatus(wrt http.ResponseWriter, rqt *http.Request) {
 	if rqt.Method != http.MethodPut {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
@@ -22,9 +22,9 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 	}
 
 	vars := mux.Vars(rqt)
-	tenderID := vars["tenderId"]
-	tenderIDLen := utf8.RuneCountInString(tenderID)
-	if tenderIDLen == 0 || tenderIDLen > 100 {
+	bidID := vars["bidId"]
+	bidIDLen := utf8.RuneCountInString(bidID)
+	if bidIDLen == 0 || bidIDLen > 100 {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
@@ -32,9 +32,9 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 		}
 	}
 
-	versionStr := vars["version"]
-	versionInt, err := strconv.Atoi(versionStr)
-	if err != nil || versionInt < 1 {
+	newStatus := rqt.URL.Query().Get("status")
+	statusLen := utf8.RuneCountInString(newStatus)
+	if statusLen == 0 {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
@@ -42,7 +42,14 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 		}
 	}
 
-	version := int32(versionInt)
+	check := bid.CheckStatusEnum(newStatus)
+	if !check {
+		errSend := handlers.SendBadReq(wrt)
+		if errSend != nil {
+			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+			return
+		}
+	}
 
 	username := rqt.URL.Query().Get("username")
 	usernameLen := utf8.RuneCountInString(username)
@@ -54,7 +61,7 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 		}
 	}
 
-	tdr, code, err := hnd.TenderRepo.RollbackTender(version, tenderID, username)
+	bid, code, err := hnd.BidRepo.UpdateBidStatus(bidID, username, bid.StatusEnum(newStatus))
 	if err != nil {
 		log.Println(err)
 		return
@@ -78,8 +85,8 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 		}
 
 	case 404:
-		err := "Тендер или версия не найдены"
-		errResp := handlers.RespondWithError(wrt, err, http.StatusNotFound)
+		err := "Предложение не найдено"
+		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
 			return
@@ -88,7 +95,7 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 
 	wrt.Header().Set("Content-Type", "application/json")
 	wrt.WriteHeader(http.StatusOK)
-	errJSON := json.NewEncoder(wrt).Encode(tdr)
+	errJSON := json.NewEncoder(wrt).Encode(bid)
 	if errJSON != nil {
 		log.Printf("ошибка отправки тела ответа: %v\n", errJSON)
 	}

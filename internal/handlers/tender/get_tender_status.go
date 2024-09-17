@@ -35,6 +35,7 @@ func (hnd *TenderHandler) GetTenderStatus(wrt http.ResponseWriter, rqt *http.Req
 	status, code, err := hnd.TenderRepo.GetTenderStatus(username, tenderID)
 	if err != nil {
 		log.Println(err)
+		return
 	}
 
 	switch code {
@@ -43,24 +44,24 @@ func (hnd *TenderHandler) GetTenderStatus(wrt http.ResponseWriter, rqt *http.Req
 		errResp := handlers.RespondWithError(wrt, err, http.StatusUnauthorized)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
+			return
 		}
-		return
 
 	case 403:
 		err := "Недостаточно прав для выполнения действия"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
+			return
 		}
-		return
 
 	case 404:
 		err := "Тендер не найден"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusNotFound)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
+			return
 		}
-		return
 	}
 
 	tenderStatus := struct {

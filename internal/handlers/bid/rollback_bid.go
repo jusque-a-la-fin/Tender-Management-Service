@@ -1,18 +1,19 @@
-package tender
+package bid
 
 import (
 	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
+	"tendermanagement/internal/bid"
 	"tendermanagement/internal/handlers"
 	"unicode/utf8"
 
 	"github.com/gorilla/mux"
 )
 
-// RollbackTender откатывает параметры тендера к указанной версии
-func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Request) {
+// RollbackBid откатывает параметры предложения к указанной версии
+func (hnd *BidHandler) RollbackBid(wrt http.ResponseWriter, rqt *http.Request) {
 	if rqt.Method != http.MethodPut {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
@@ -22,9 +23,9 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 	}
 
 	vars := mux.Vars(rqt)
-	tenderID := vars["tenderId"]
-	tenderIDLen := utf8.RuneCountInString(tenderID)
-	if tenderIDLen == 0 || tenderIDLen > 100 {
+	bidID := vars["bidId"]
+	bidIDLen := utf8.RuneCountInString(bidID)
+	if bidIDLen == 0 || bidIDLen > 100 {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
@@ -41,7 +42,6 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 			return
 		}
 	}
-
 	version := int32(versionInt)
 
 	username := rqt.URL.Query().Get("username")
@@ -54,7 +54,13 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 		}
 	}
 
-	tdr, code, err := hnd.TenderRepo.RollbackTender(version, tenderID, username)
+	bri := bid.BidRollbackInput{
+		BidID:    bidID,
+		Version:  version,
+		Username: username,
+	}
+
+	nbd, code, err := hnd.BidRepo.RollbackBid(bri)
 	if err != nil {
 		log.Println(err)
 		return
@@ -78,8 +84,8 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 		}
 
 	case 404:
-		err := "Тендер или версия не найдены"
-		errResp := handlers.RespondWithError(wrt, err, http.StatusNotFound)
+		err := "Предложение или версия не найдены"
+		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
 			return
@@ -88,7 +94,7 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 
 	wrt.Header().Set("Content-Type", "application/json")
 	wrt.WriteHeader(http.StatusOK)
-	errJSON := json.NewEncoder(wrt).Encode(tdr)
+	errJSON := json.NewEncoder(wrt).Encode(nbd)
 	if errJSON != nil {
 		log.Printf("ошибка отправки тела ответа: %v\n", errJSON)
 	}

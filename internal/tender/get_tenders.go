@@ -2,7 +2,11 @@ package tender
 
 import (
 	"fmt"
+	"sort"
 	"strings"
+
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 )
 
 // GetTenders получает список тендеров с возможностью фильтрации по типу услуг
@@ -52,6 +56,11 @@ func (repo *TenderDBRepository) GetTenders(startIndex, endIndex int32, serviceTy
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("ошибка во время итерирования по строкам, возвращенным запросом: %v", err)
 	}
+
+	clr := collate.New(language.Russian)
+	sort.Slice(tenders, func(i, j int) bool {
+		return clr.CompareString(tenders[i].Name, tenders[j].Name) < 0
+	})
 
 	if startIndex != NoValue && endIndex != NoValue {
 		return tenders[startIndex:endIndex], nil

@@ -8,7 +8,7 @@ import (
 
 // SubmitBidDecision отправляет решение (одобряет или отклоняет) по предложению
 func (repo *BidDBRepository) SubmitBidDecision(bsi BidSubmissionInput) (*Bid, int, error) {
-	valid, err := сheckBid(repo.dtb, bsi.BID)
+	valid, err := сheckBid(repo.dtb, bsi.BidID)
 	if !valid || err != nil {
 		return nil, 404, err
 	}
@@ -20,7 +20,7 @@ func (repo *BidDBRepository) SubmitBidDecision(bsi BidSubmissionInput) (*Bid, in
 
 	var tenderID string
 	query := `SELECT tender_id FROM bid WHERE id = $1;`
-	err = repo.dtb.QueryRow(query, bsi.BID).Scan(&tenderID)
+	err = repo.dtb.QueryRow(query, bsi.BidID).Scan(&tenderID)
 	if err != nil {
 		return nil, -1, err
 	}
@@ -57,7 +57,7 @@ func (repo *BidDBRepository) SubmitBidDecision(bsi BidSubmissionInput) (*Bid, in
 	    INSERT INTO bid_decisions (decision, organization_id, user_id, bid_id)
 	    VALUES ($1, $2, $3, $4);`
 
-	result, err := repo.dtb.Exec(query, bsi.Decision, organizationID, userID, bsi.BID)
+	result, err := repo.dtb.Exec(query, bsi.Decision, organizationID, userID, bsi.BidID)
 	if err != nil {
 		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: добавление нового решения по предложению: %v", err)
 	}
@@ -71,19 +71,19 @@ func (repo *BidDBRepository) SubmitBidDecision(bsi BidSubmissionInput) (*Bid, in
 		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: не добавилось решение по предложению")
 	}
 
-	rejectedCount, err := getDecisionCount(repo.dtb, Rejected, organizationID, bsi.BID)
+	rejectedCount, err := getDecisionCount(repo.dtb, Rejected, organizationID, bsi.BidID)
 	if err != nil {
 		return nil, -1, err
 	}
 
 	if rejectedCount > 0 {
-		err = RejectBid(repo.dtb, bsi.BID)
+		err = RejectBid(repo.dtb, bsi.BidID)
 		if err != nil {
 			return nil, -1, err
 		}
 
 	} else {
-		approvedCount, err := getDecisionCount(repo.dtb, Approved, organizationID, bsi.BID)
+		approvedCount, err := getDecisionCount(repo.dtb, Approved, organizationID, bsi.BidID)
 		if err != nil {
 			return nil, -1, err
 		}
@@ -99,7 +99,7 @@ func (repo *BidDBRepository) SubmitBidDecision(bsi BidSubmissionInput) (*Bid, in
 		}
 	}
 
-	bid, err := GetBid(repo.dtb, bsi.BID)
+	bid, err := GetBid(repo.dtb, bsi.BidID)
 	if err != nil {
 		return nil, -1, err
 	}
@@ -160,7 +160,6 @@ func countResponsibleUsers(dtb *sql.DB, organizationID string) (int, error) {
 	}
 
 	return userCount, nil
-
 }
 
 func findMin(digit1, digit2 int) int {

@@ -60,6 +60,7 @@ func (hnd *TenderHandler) GetUserTenders(wrt http.ResponseWriter, rqt *http.Requ
 	tenders, code, err := hnd.TenderRepo.GetUserTenders(offset, endIndex, username)
 	if err != nil {
 		log.Println(err)
+		return
 	}
 
 	if code == 401 {
@@ -67,8 +68,8 @@ func (hnd *TenderHandler) GetUserTenders(wrt http.ResponseWriter, rqt *http.Requ
 		errResp := handlers.RespondWithError(wrt, err, http.StatusUnauthorized)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
+			return
 		}
-		return
 	}
 
 	wrt.Header().Set("Content-Type", "application/json")

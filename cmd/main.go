@@ -42,10 +42,15 @@ func main() {
 	rtr.HandleFunc("/tenders/{tenderId}/edit", tendersHandler.EditTender).Methods("PATCH")
 	rtr.HandleFunc("/tenders/{tenderId}/rollback/{version}", tendersHandler.RollbackTender).Methods("PUT")
 	rtr.HandleFunc("/bids/new", bids.CreateBid).Methods("POST")
+	rtr.HandleFunc("/bids/my", bids.GetUserBids).Methods("GET")
+	rtr.HandleFunc("/bids/{tenderId}/list", bids.GetBidsForTender).Methods("GET")
 	rtr.HandleFunc("/bids/{bidId}/edit", bids.EditBid).Methods("PATCH")
 	rtr.HandleFunc("/bids/{bidId}/submit_decision", bids.SubmitBidDecision).Methods("PUT")
 	rtr.HandleFunc("/bids/{bidId}/feedback", bids.SubmitBidFeedback).Methods("PUT")
 	rtr.HandleFunc("/bids/{tenderId}/reviews", bids.GetBidReviews).Methods("GET")
+	rtr.HandleFunc("/bids/{bidId}/rollback/{version}", bids.RollbackBid).Methods("PUT")
+	rtr.HandleFunc("/bids/{bidId}/status", bids.GetBidStatus).Methods("GET")
+	rtr.HandleFunc("/bids/{bidId}/status", bids.UpdateBidStatus).Methods("PUT")
 
 	port := os.Getenv("SERVER_ADDRESS")
 
@@ -69,12 +74,12 @@ func main() {
 	if certExists && keyExists {
 		err = http.ListenAndServeTLS(port, certFile, keyFile, rtr)
 		if err != nil {
-			log.Fatalf("ListenAndServe error: %#v", err)
+			log.Fatalf("ListenAndServe error: %v", err)
 		}
 	} else {
 		err = http.ListenAndServe(port, rtr)
 		if err != nil {
-			log.Fatalf("ListenAndServe error: %#v", err)
+			log.Fatalf("ListenAndServe error: %v", err)
 		}
 	}
 }

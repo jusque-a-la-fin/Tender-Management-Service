@@ -2,6 +2,10 @@ package tender
 
 import (
 	"fmt"
+	"sort"
+
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 )
 
 // GetUserTenders получает список тендеров текущего пользователя
@@ -44,6 +48,11 @@ func (repo *TenderDBRepository) GetUserTenders(startIndex, endIndex int32, usern
 	if err = rows.Err(); err != nil {
 		return nil, -1, fmt.Errorf("ошибка во время итерирования по строкам, возвращенным запросом: %v", err)
 	}
+
+	clr := collate.New(language.Russian)
+	sort.Slice(tenders, func(i, j int) bool {
+		return clr.CompareString(tenders[i].Name, tenders[j].Name) < 0
+	})
 
 	if startIndex != NoValue && endIndex != NoValue {
 		return tenders[startIndex:endIndex], 200, nil

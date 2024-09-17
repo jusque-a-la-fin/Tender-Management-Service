@@ -1,4 +1,4 @@
-package tender
+package bid
 
 import (
 	"encoding/json"
@@ -6,13 +6,23 @@ import (
 	"net/http"
 	"strconv"
 	"tendermanagement/internal/handlers"
-	tnd "tendermanagement/internal/tender"
+	"tendermanagement/internal/tender"
 	"unicode/utf8"
 )
 
-// GetTenders получает список тендеров с возможностью фильтрации по типу услуг
-func (hnd *TenderHandler) GetTenders(wrt http.ResponseWriter, rqt *http.Request) {
+// GetUserBids получает список предложений текущего пользователя
+func (hnd *BidHandler) GetUserBids(wrt http.ResponseWriter, rqt *http.Request) {
 	if rqt.Method != http.MethodGet {
+		errSend := handlers.SendBadReq(wrt)
+		if errSend != nil {
+			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+			return
+		}
+	}
+
+	username := rqt.URL.Query().Get("username")
+	usernameLen := utf8.RuneCountInString(username)
+	if usernameLen == 0 {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
@@ -42,7 +52,7 @@ func (hnd *TenderHandler) GetTenders(wrt http.ResponseWriter, rqt *http.Request)
 		}
 	}
 
-	offset := tnd.NoValue
+	offset := tender.NoValue
 	offsetStr := rqt.URL.Query().Get("offset")
 	if offsetStr != "" {
 		offsetInt, err := strconv.Atoi(offsetStr)
@@ -63,43 +73,27 @@ func (hnd *TenderHandler) GetTenders(wrt http.ResponseWriter, rqt *http.Request)
 			}
 		}
 	}
-
 	endIndex := offset + limit
 
-	serviceTypesRaw := rqt.URL.Query()["service_type"]
-	var serviceTypes []tnd.ServiceTypeEnum
-	for _, service := range serviceTypesRaw {
-		checkServiceTypes(wrt, service)
-		serviceTypes = append(serviceTypes, tnd.ServiceTypeEnum(service))
-	}
-
-	tenders, err := hnd.TenderRepo.GetTenders(offset, endIndex, []tnd.ServiceTypeEnum(serviceTypes))
+	bids, code, err := hnd.BidRepo.GetUserBids(username, offset, endIndex)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
+	if code == 401 {
+		err := "Пользователь не существует или некорректен"
+		errResp := handlers.RespondWithError(wrt, err, http.StatusUnauthorized)
+		if errResp != nil {
+			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
+			return
+		}
+	}
+
 	wrt.Header().Set("Content-Type", "application/json")
 	wrt.WriteHeader(http.StatusOK)
-	errJSON := json.NewEncoder(wrt).Encode(tenders)
+	errJSON := json.NewEncoder(wrt).Encode(bids)
 	if errJSON != nil {
 		log.Printf("ошибка отправки тела ответа: %v\n", errJSON)
-		return
-	}
-}
-
-func checkServiceTypes(wrt http.ResponseWriter, serviceType string) {
-	serviceTypeLen := utf8.RuneCountInString(serviceType)
-	if serviceTypeLen == 0 {
-		wrt.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	fail := tnd.CheckServiceType(serviceType)
-	if fail {
-		errSend := handlers.SendBadReq(wrt)
-		if errSend != nil {
-			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-		}
 	}
 }
