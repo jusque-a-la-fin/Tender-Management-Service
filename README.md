@@ -4,7 +4,8 @@
 git clone git@github.com:jusque-a-la-fin/Tender-Management-Service.git && cd Tender-Management-Service && docker compose up --build
 ```
 ## Замечания
-  Выполнены все дополнительные требования:
+-  Таблицы для остальных сущностей здесь: [sql](init.sql) 
+- Выполнены все дополнительные требования:
   ### Дополнительные требования
 
 1. Расширенный процесс согласования:
@@ -27,4 +28,4 @@ git clone git@github.com:jusque-a-la-fin/Tender-Management-Service.git && cd Ten
 
    - После отката, считается новой правкой с увеличением версии.
 
-9. Описание конфигурации линтера.
+9. Описание конфигурации линтера: [golangci.yml](golangci.yml)
