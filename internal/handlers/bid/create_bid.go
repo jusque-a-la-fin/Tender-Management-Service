@@ -15,8 +15,8 @@ func (hnd *BidHandler) CreateBid(wrt http.ResponseWriter, rqt *http.Request) {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	var brq BidCreationReq
@@ -25,8 +25,8 @@ func (hnd *BidHandler) CreateBid(wrt http.ResponseWriter, rqt *http.Request) {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	bdName := utf8.RuneCountInString(brq.Name)
@@ -39,29 +39,29 @@ func (hnd *BidHandler) CreateBid(wrt http.ResponseWriter, rqt *http.Request) {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 
 	case bdDesc == 0 || bdDesc > 500:
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 
 	case tndID == 0 || tndID > 100:
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 
 	case atID == 0 || atID > 100:
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	fail := bid.CheckAuthorType(brq.AuthorType)
@@ -69,8 +69,8 @@ func (hnd *BidHandler) CreateBid(wrt http.ResponseWriter, rqt *http.Request) {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	bdi := bid.BidCreationInput{
@@ -93,24 +93,24 @@ func (hnd *BidHandler) CreateBid(wrt http.ResponseWriter, rqt *http.Request) {
 		errResp := handlers.RespondWithError(wrt, err, http.StatusUnauthorized)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 
 	case 403:
 		err := "Недостаточно прав для выполнения действия"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 
 	case 404:
 		err := "Тендер не найден"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 	}
 
 	wrt.Header().Set("Content-Type", "application/json")

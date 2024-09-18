@@ -17,8 +17,8 @@ func (hnd *BidHandler) UpdateBidStatus(wrt http.ResponseWriter, rqt *http.Reques
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	vars := mux.Vars(rqt)
@@ -28,8 +28,8 @@ func (hnd *BidHandler) UpdateBidStatus(wrt http.ResponseWriter, rqt *http.Reques
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	newStatus := rqt.URL.Query().Get("status")
@@ -38,8 +38,8 @@ func (hnd *BidHandler) UpdateBidStatus(wrt http.ResponseWriter, rqt *http.Reques
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	check := bid.CheckStatusEnum(newStatus)
@@ -47,8 +47,8 @@ func (hnd *BidHandler) UpdateBidStatus(wrt http.ResponseWriter, rqt *http.Reques
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	username := rqt.URL.Query().Get("username")
@@ -57,8 +57,8 @@ func (hnd *BidHandler) UpdateBidStatus(wrt http.ResponseWriter, rqt *http.Reques
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	bid, code, err := hnd.BidRepo.UpdateBidStatus(bidID, username, bid.StatusEnum(newStatus))
@@ -73,24 +73,24 @@ func (hnd *BidHandler) UpdateBidStatus(wrt http.ResponseWriter, rqt *http.Reques
 		errResp := handlers.RespondWithError(wrt, err, http.StatusUnauthorized)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 
 	case 403:
 		err := "Недостаточно прав для выполнения действия"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 
 	case 404:
 		err := "Предложение не найдено"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 	}
 
 	wrt.Header().Set("Content-Type", "application/json")

@@ -17,8 +17,8 @@ func (hnd *TenderHandler) UpdateTenderStatus(wrt http.ResponseWriter, rqt *http.
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	vars := mux.Vars(rqt)
@@ -28,8 +28,8 @@ func (hnd *TenderHandler) UpdateTenderStatus(wrt http.ResponseWriter, rqt *http.
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	newStatus := rqt.URL.Query().Get("status")
@@ -38,8 +38,8 @@ func (hnd *TenderHandler) UpdateTenderStatus(wrt http.ResponseWriter, rqt *http.
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	check := tender.CheckStatus(newStatus)
@@ -47,8 +47,8 @@ func (hnd *TenderHandler) UpdateTenderStatus(wrt http.ResponseWriter, rqt *http.
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	username := rqt.URL.Query().Get("username")
@@ -57,8 +57,8 @@ func (hnd *TenderHandler) UpdateTenderStatus(wrt http.ResponseWriter, rqt *http.
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	tender, code, err := hnd.TenderRepo.UpdateTenderStatus(tenderID, newStatus, username)
@@ -73,24 +73,24 @@ func (hnd *TenderHandler) UpdateTenderStatus(wrt http.ResponseWriter, rqt *http.
 		errResp := handlers.RespondWithError(wrt, err, http.StatusUnauthorized)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 
 	case 403:
 		err := "Недостаточно прав для выполнения действия"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 
 	case 404:
 		err := "Тендер не найден"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusNotFound)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 	}
 
 	wrt.Header().Set("Content-Type", "application/json")

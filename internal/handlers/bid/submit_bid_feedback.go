@@ -17,8 +17,8 @@ func (hnd *BidHandler) SubmitBidFeedback(wrt http.ResponseWriter, rqt *http.Requ
 		errSend := handlers.SendFeedbackBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	vars := mux.Vars(rqt)
@@ -28,8 +28,8 @@ func (hnd *BidHandler) SubmitBidFeedback(wrt http.ResponseWriter, rqt *http.Requ
 		errSend := handlers.SendFeedbackBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	bidFeedback := rqt.URL.Query().Get("bidFeedback")
@@ -38,8 +38,8 @@ func (hnd *BidHandler) SubmitBidFeedback(wrt http.ResponseWriter, rqt *http.Requ
 		errSend := handlers.SendFeedbackBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	username := rqt.URL.Query().Get("username")
@@ -48,8 +48,8 @@ func (hnd *BidHandler) SubmitBidFeedback(wrt http.ResponseWriter, rqt *http.Requ
 		errSend := handlers.SendFeedbackBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	bfi := bid.BidFeedbackInput{
@@ -70,24 +70,24 @@ func (hnd *BidHandler) SubmitBidFeedback(wrt http.ResponseWriter, rqt *http.Requ
 		errResp := handlers.RespondWithError(wrt, err, http.StatusUnauthorized)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 
 	case 403:
 		err := "Недостаточно прав для выполнения действия"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 
 	case 404:
 		err := "Предложение не найдено"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 	}
 
 	wrt.Header().Set("Content-Type", "application/json")

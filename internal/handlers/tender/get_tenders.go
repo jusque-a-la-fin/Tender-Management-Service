@@ -2,6 +2,7 @@ package tender
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -16,8 +17,8 @@ func (hnd *TenderHandler) GetTenders(wrt http.ResponseWriter, rqt *http.Request)
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	var limit int32 = 0
@@ -28,8 +29,8 @@ func (hnd *TenderHandler) GetTenders(wrt http.ResponseWriter, rqt *http.Request)
 			errSend := handlers.SendBadReq(wrt)
 			if errSend != nil {
 				log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-				return
 			}
+			return
 		}
 
 		limit = int32(limitInt)
@@ -37,8 +38,8 @@ func (hnd *TenderHandler) GetTenders(wrt http.ResponseWriter, rqt *http.Request)
 			errSend := handlers.SendBadReq(wrt)
 			if errSend != nil {
 				log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-				return
 			}
+			return
 		}
 	}
 
@@ -50,8 +51,8 @@ func (hnd *TenderHandler) GetTenders(wrt http.ResponseWriter, rqt *http.Request)
 			errSend := handlers.SendBadReq(wrt)
 			if errSend != nil {
 				log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-				return
 			}
+			return
 		}
 
 		offset = int32(offsetInt)
@@ -59,8 +60,8 @@ func (hnd *TenderHandler) GetTenders(wrt http.ResponseWriter, rqt *http.Request)
 			errSend := handlers.SendBadReq(wrt)
 			if errSend != nil {
 				log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-				return
 			}
+			return
 		}
 	}
 
@@ -69,7 +70,12 @@ func (hnd *TenderHandler) GetTenders(wrt http.ResponseWriter, rqt *http.Request)
 	serviceTypesRaw := rqt.URL.Query()["service_type"]
 	var serviceTypes []tnd.ServiceTypeEnum
 	for _, service := range serviceTypesRaw {
-		checkServiceTypes(wrt, service)
+		err := checkServiceTypes(wrt, service)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
 		serviceTypes = append(serviceTypes, tnd.ServiceTypeEnum(service))
 	}
 
@@ -84,15 +90,14 @@ func (hnd *TenderHandler) GetTenders(wrt http.ResponseWriter, rqt *http.Request)
 	errJSON := json.NewEncoder(wrt).Encode(tenders)
 	if errJSON != nil {
 		log.Printf("ошибка отправки тела ответа: %v\n", errJSON)
-		return
 	}
 }
 
-func checkServiceTypes(wrt http.ResponseWriter, serviceType string) {
+func checkServiceTypes(wrt http.ResponseWriter, serviceType string) error {
 	serviceTypeLen := utf8.RuneCountInString(serviceType)
 	if serviceTypeLen == 0 {
 		wrt.WriteHeader(http.StatusBadRequest)
-		return
+		return errors.New("значение для параметра service_type отсутствует")
 	}
 
 	fail := tnd.CheckServiceType(serviceType)
@@ -101,5 +106,7 @@ func checkServiceTypes(wrt http.ResponseWriter, serviceType string) {
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
 		}
+		return errSend
 	}
+	return nil
 }

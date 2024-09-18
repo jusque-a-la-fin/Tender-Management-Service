@@ -17,8 +17,8 @@ func (hnd *TenderHandler) EditTender(wrt http.ResponseWriter, rqt *http.Request)
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	vars := mux.Vars(rqt)
@@ -28,8 +28,8 @@ func (hnd *TenderHandler) EditTender(wrt http.ResponseWriter, rqt *http.Request)
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	username := rqt.URL.Query().Get("username")
@@ -38,8 +38,8 @@ func (hnd *TenderHandler) EditTender(wrt http.ResponseWriter, rqt *http.Request)
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	var trq tnd.TenderEditionInput
@@ -48,8 +48,8 @@ func (hnd *TenderHandler) EditTender(wrt http.ResponseWriter, rqt *http.Request)
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	tdNameLen := utf8.RuneCountInString(trq.Name)
@@ -60,15 +60,15 @@ func (hnd *TenderHandler) EditTender(wrt http.ResponseWriter, rqt *http.Request)
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 
 	case tdDescLen > 500:
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	fail := tnd.CheckServiceType(string(trq.ServiceType))
@@ -76,8 +76,8 @@ func (hnd *TenderHandler) EditTender(wrt http.ResponseWriter, rqt *http.Request)
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	tdr, code, err := hnd.TenderRepo.EditTender(trq, tenderID, username)
@@ -92,24 +92,24 @@ func (hnd *TenderHandler) EditTender(wrt http.ResponseWriter, rqt *http.Request)
 		errResp := handlers.RespondWithError(wrt, err, http.StatusUnauthorized)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 
 	case 403:
 		err := "Недостаточно прав для выполнения действия"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 
 	case 404:
 		err := "Предложение не найдено"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusNotFound)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 	}
 
 	wrt.Header().Set("Content-Type", "application/json")

@@ -19,8 +19,8 @@ func (hnd *BidHandler) GetBidReviews(wrt http.ResponseWriter, rqt *http.Request)
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	vars := mux.Vars(rqt)
@@ -30,8 +30,8 @@ func (hnd *BidHandler) GetBidReviews(wrt http.ResponseWriter, rqt *http.Request)
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	authorUsername := rqt.URL.Query().Get("authorUsername")
@@ -40,8 +40,8 @@ func (hnd *BidHandler) GetBidReviews(wrt http.ResponseWriter, rqt *http.Request)
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	requesterUsername := rqt.URL.Query().Get("requesterUsername")
@@ -50,8 +50,8 @@ func (hnd *BidHandler) GetBidReviews(wrt http.ResponseWriter, rqt *http.Request)
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	var limit int32 = 0
@@ -62,8 +62,8 @@ func (hnd *BidHandler) GetBidReviews(wrt http.ResponseWriter, rqt *http.Request)
 			errSend := handlers.SendBadReq(wrt)
 			if errSend != nil {
 				log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-				return
 			}
+			return
 		}
 
 		limit = int32(limitInt)
@@ -71,8 +71,8 @@ func (hnd *BidHandler) GetBidReviews(wrt http.ResponseWriter, rqt *http.Request)
 			errSend := handlers.SendBadReq(wrt)
 			if errSend != nil {
 				log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-				return
 			}
+			return
 		}
 	}
 
@@ -84,8 +84,8 @@ func (hnd *BidHandler) GetBidReviews(wrt http.ResponseWriter, rqt *http.Request)
 			errSend := handlers.SendBadReq(wrt)
 			if errSend != nil {
 				log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-				return
 			}
+			return
 		}
 
 		offset = int32(offsetInt)
@@ -93,8 +93,8 @@ func (hnd *BidHandler) GetBidReviews(wrt http.ResponseWriter, rqt *http.Request)
 			errSend := handlers.SendBadReq(wrt)
 			if errSend != nil {
 				log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-				return
 			}
+			return
 		}
 	}
 	endIndex := offset + limit
@@ -119,24 +119,24 @@ func (hnd *BidHandler) GetBidReviews(wrt http.ResponseWriter, rqt *http.Request)
 		errResp := handlers.RespondWithError(wrt, err, http.StatusUnauthorized)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 
 	case 403:
 		err := "Недостаточно прав для выполнения действия"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 
 	case 404:
 		err := "Тендер или отзывы не найдены"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 	}
 
 	wrt.Header().Set("Content-Type", "application/json")

@@ -17,8 +17,8 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	vars := mux.Vars(rqt)
@@ -28,8 +28,8 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	versionStr := vars["version"]
@@ -38,8 +38,8 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	version := int32(versionInt)
@@ -50,8 +50,8 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	tdr, code, err := hnd.TenderRepo.RollbackTender(version, tenderID, username)
@@ -66,24 +66,24 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 		errResp := handlers.RespondWithError(wrt, err, http.StatusUnauthorized)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 
 	case 403:
 		err := "Недостаточно прав для выполнения действия"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 
 	case 404:
 		err := "Тендер или версия не найдены"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusNotFound)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 	}
 
 	wrt.Header().Set("Content-Type", "application/json")

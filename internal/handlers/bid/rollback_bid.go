@@ -18,8 +18,8 @@ func (hnd *BidHandler) RollbackBid(wrt http.ResponseWriter, rqt *http.Request) {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	vars := mux.Vars(rqt)
@@ -29,8 +29,8 @@ func (hnd *BidHandler) RollbackBid(wrt http.ResponseWriter, rqt *http.Request) {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	versionStr := vars["version"]
@@ -39,8 +39,8 @@ func (hnd *BidHandler) RollbackBid(wrt http.ResponseWriter, rqt *http.Request) {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 	version := int32(versionInt)
 
@@ -50,8 +50,8 @@ func (hnd *BidHandler) RollbackBid(wrt http.ResponseWriter, rqt *http.Request) {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-			return
 		}
+		return
 	}
 
 	bri := bid.BidRollbackInput{
@@ -72,24 +72,24 @@ func (hnd *BidHandler) RollbackBid(wrt http.ResponseWriter, rqt *http.Request) {
 		errResp := handlers.RespondWithError(wrt, err, http.StatusUnauthorized)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 
 	case 403:
 		err := "Недостаточно прав для выполнения действия"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 
 	case 404:
 		err := "Предложение или версия не найдены"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-			return
 		}
+		return
 	}
 
 	wrt.Header().Set("Content-Type", "application/json")
