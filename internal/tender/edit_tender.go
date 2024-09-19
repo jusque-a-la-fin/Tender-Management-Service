@@ -59,20 +59,22 @@ func (repo *TenderDBRepository) EditTender(tei TenderEditionInput, tenderID, use
 	args = append(args, currentVersion)
 	noChanges := true
 	counter := 1
-	switch {
-	case tei.Name != "":
+	if tei.Name != "" {
 		args = append(args, tei.Name)
 		query = fmt.Sprintf("%sname, ", query)
 		noChanges = false
 		counter++
 
-	case tei.Description != "":
+	}
+
+	if tei.Description != "" {
 		args = append(args, tei.Description)
 		query = fmt.Sprintf("%sdescription, ", query)
 		noChanges = false
 		counter++
+	}
 
-	case tei.ServiceType != "":
+	if tei.ServiceType != "" {
 		args = append(args, string(tei.ServiceType))
 		query = fmt.Sprintf("%sservice_type, ", query)
 		noChanges = false
