@@ -42,8 +42,8 @@ func (hnd *TenderHandler) UpdateTenderStatus(wrt http.ResponseWriter, rqt *http.
 		return
 	}
 
-	check := tender.CheckStatus(newStatus)
-	if !check {
+	fail := tender.CheckStatus(newStatus)
+	if fail {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
