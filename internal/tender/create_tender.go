@@ -30,7 +30,7 @@ func (repo *TenderDBRepository) CreateTender(tci TenderCreationInput, creatorUse
 	var status StatusEnum = "Created"
 	var version int32 = 1
 	query = `INSERT INTO tender (status, current_version, created_at, user_id, organization_id)
-	         VALUES ($1, $2, $3, $4) RETURNING id;`
+	         VALUES ($1, $2, $3, $4, $5) RETURNING id;`
 
 	var tenderID string
 	err = repo.dtb.QueryRow(query, status, version, tci.CreatedAt, userID, organizationID).Scan(&tenderID)
