@@ -12,11 +12,10 @@ import (
 // GetTenders получает список тендеров с возможностью фильтрации по типу услуг
 func (repo *TenderDBRepository) GetTenders(startIndex, endIndex int32, serviceTypes []ServiceTypeEnum) ([]Tender, error) {
 	tenders := make([]Tender, 0)
-	query := `
-    SELECT tdr.id, tdr.status, tdr.current_version, tdr.created_at, 
-           tdr.organization_id, tvs.name, tvs.description, tvs.service_type 
-    FROM tender tdr
-    JOIN tender_versions tvs ON tdr.id = tvs.tender_id AND tdr.current_version = tvs.version`
+	query := `SELECT tdr.id, tdr.status, tdr.current_version, tdr.created_at, 
+                  tdr.organization_id, tvs.name, tvs.description, tvs.service_type 
+                  FROM tender tdr
+                  JOIN tender_versions tvs ON tdr.id = tvs.tender_id AND tdr.current_version = tvs.version`
 
 	var args []interface{}
 
@@ -25,10 +24,10 @@ func (repo *TenderDBRepository) GetTenders(startIndex, endIndex int32, serviceTy
 		args = make([]interface{}, len(serviceTypes))
 
 		for i, serviceType := range serviceTypes {
-			placeholders[i] = "?"
+			placeholders[i] = fmt.Sprintf("$%d", i+1)
 			args[i] = serviceType
 		}
-		query += " WHERE tvs.service_type IN (" + strings.Join(placeholders, ", ") + ")"
+		query += " WHERE tvs.service_type IN (" + strings.Join(placeholders, ", ") + ");"
 	}
 
 	stmt, err := repo.dtb.Prepare(query)
