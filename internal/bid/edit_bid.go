@@ -59,14 +59,14 @@ func (repo *BidDBRepository) EditBid(bdi BidEditionInput, bidID, username string
 	noChanges := true
 	counter := 1
 
-	switch {
-	case bdi.Name != "":
+	if bdi.Name != "" {
 		args = append(args, bdi.Name)
 		query = fmt.Sprintf("%sname, ", query)
 		noChanges = false
 		counter++
+	}
 
-	case bdi.Description != "":
+	if bdi.Description != "" {
 		args = append(args, bdi.Description)
 		query = fmt.Sprintf("%sdescription, ", query)
 		noChanges = false
