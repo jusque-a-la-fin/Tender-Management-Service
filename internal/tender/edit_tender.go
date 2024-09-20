@@ -28,6 +28,14 @@ func (repo *TenderDBRepository) EditTender(tei TenderEditionInput, tenderID, use
 		return nil, 404, err
 	}
 
+	if tei.Name == "" && tei.Description == "" && tei.ServiceType == "" {
+		tnd, err := GetTender(repo.dtb, tenderID)
+		if err != nil {
+			return nil, -1, err
+		}
+		return tnd, 200, nil
+	}
+
 	query := `
 		SELECT MAX(version)
 		FROM tender_versions
@@ -44,14 +52,12 @@ func (repo *TenderDBRepository) EditTender(tei TenderEditionInput, tenderID, use
 	maxArgs := 5
 	args := make([]interface{}, maxArgs)
 	query = "INSERT INTO tender_versions (version, name, description, service_type, tender_id) VALUES ($1, $2, $3, $4, $5);"
-	noChanges := true
 
 	if tei.Name == "" {
 		args[1], err = getParam(repo.dtb, "name", tenderID, latestVersion)
 		if err != nil {
 			return nil, -1, err
 		}
-		noChanges = false
 	} else {
 		args[1] = tei.Name
 	}
@@ -61,7 +67,6 @@ func (repo *TenderDBRepository) EditTender(tei TenderEditionInput, tenderID, use
 		if err != nil {
 			return nil, -1, err
 		}
-		noChanges = false
 	} else {
 		args[2] = tei.Description
 	}
@@ -71,7 +76,6 @@ func (repo *TenderDBRepository) EditTender(tei TenderEditionInput, tenderID, use
 		if err != nil {
 			return nil, -1, err
 		}
-		noChanges = false
 	} else {
 		args[3] = tei.ServiceType
 	}
@@ -79,14 +83,6 @@ func (repo *TenderDBRepository) EditTender(tei TenderEditionInput, tenderID, use
 	latestVersion++
 	args[0] = latestVersion
 	args[4] = tenderID
-
-	if noChanges {
-		tnd, err := GetTender(repo.dtb, tenderID)
-		if err != nil {
-			return nil, -1, err
-		}
-		return tnd, 200, nil
-	}
 
 	result, err := repo.dtb.Exec(query, args...)
 	if err != nil {
