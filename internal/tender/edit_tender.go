@@ -1,8 +1,8 @@
 package tender
 
 import (
+	"database/sql"
 	"fmt"
-	"strings"
 )
 
 // EditTender изменяет параметры существующего тендера
@@ -10,11 +10,6 @@ func (repo *TenderDBRepository) EditTender(tei TenderEditionInput, tenderID, use
 	valid, err := CheckUser(repo.dtb, username)
 	if !valid || err != nil {
 		return nil, 401, err
-	}
-
-	valid, err = CheckTender(repo.dtb, tenderID)
-	if !valid || err != nil {
-		return nil, 404, err
 	}
 
 	var userID string
@@ -28,58 +23,62 @@ func (repo *TenderDBRepository) EditTender(tei TenderEditionInput, tenderID, use
 		return nil, 403, err
 	}
 
-	query := `
-	        SELECT current_version
-		    FROM tender
-		    WHERE id = $1;`
-
-	var currentVersion int
-	err = repo.dtb.QueryRow(query, tenderID).Scan(&currentVersion)
-	if err != nil {
-		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение текущей версии тендера: %v", err)
+	valid, err = CheckTender(repo.dtb, tenderID)
+	if !valid || err != nil {
+		return nil, 404, err
 	}
 
-	currentVersion++
+	query := `
+		SELECT MAX(version)
+		FROM tender_versions
+		WHERE tender_id = $1;
+	`
 
-	query = `
-		     UPDATE tender
-		     SET current_version = $1
-		     WHERE id = $2;`
-
-	_, err = repo.dtb.Exec(query, currentVersion, tenderID)
+	var latestVersion int32
+	err = repo.dtb.QueryRow(query, tenderID).Scan(&latestVersion)
 	if err != nil {
-		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: обновление текущей версии тендера: %v", err)
+		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение последней версии тендера: %v", err)
 	}
 
 	// maxArgs - максимальное количество аргументов
 	maxArgs := 5
-	args := make([]interface{}, 0, maxArgs)
-
-	query = "INSERT INTO tender_versions (version, "
-	args = append(args, currentVersion)
+	args := make([]interface{}, maxArgs)
+	query = "INSERT INTO tender_versions (version, name, description, service_type, tender_id) VALUES ($1, $2, $3, $4, $5);"
 	noChanges := true
-	counter := 1
-	if tei.Name != "" {
-		args = append(args, tei.Name)
-		query = fmt.Sprintf("%sname, ", query)
-		noChanges = false
-		counter++
 
+	if tei.Name == "" {
+		args[1], err = getParam(repo.dtb, "name", tenderID, latestVersion)
+		if err != nil {
+			return nil, -1, err
+		}
+		noChanges = false
+	} else {
+		args[1] = tei.Name
 	}
 
-	if tei.Description != "" {
-		args = append(args, tei.Description)
-		query = fmt.Sprintf("%sdescription, ", query)
+	if tei.Description == "" {
+		args[2], err = getParam(repo.dtb, "description", tenderID, latestVersion)
+		if err != nil {
+			return nil, -1, err
+		}
 		noChanges = false
-		counter++
+	} else {
+		args[2] = tei.Description
 	}
 
-	if tei.ServiceType != "" {
-		args = append(args, string(tei.ServiceType))
-		query = fmt.Sprintf("%sservice_type, ", query)
+	if tei.ServiceType == "" {
+		args[3], err = getParam(repo.dtb, "service_type", tenderID, latestVersion)
+		if err != nil {
+			return nil, -1, err
+		}
 		noChanges = false
-		counter++
+	} else {
+		args[3] = tei.ServiceType
 	}
+
+	latestVersion++
+	args[0] = latestVersion
+	args[4] = tenderID
 
 	if noChanges {
 		tnd, err := GetTender(repo.dtb, tenderID)
@@ -88,18 +87,6 @@ func (repo *TenderDBRepository) EditTender(tei TenderEditionInput, tenderID, use
 		}
 		return tnd, 200, nil
 	}
-
-	counter++
-	args = append(args, tenderID)
-	query = fmt.Sprintf("%stender_id)", query)
-	query = fmt.Sprintf("%s VALUES (", query)
-
-	for cnt := 1; cnt <= counter; cnt++ {
-		query = fmt.Sprintf("%s$%d, ", query, cnt)
-	}
-
-	query = strings.TrimSuffix(query, ", ")
-	query = fmt.Sprintf("%s);", query)
 
 	result, err := repo.dtb.Exec(query, args...)
 	if err != nil {
@@ -115,10 +102,33 @@ func (repo *TenderDBRepository) EditTender(tei TenderEditionInput, tenderID, use
 		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: не обновились параметры существующего тендера")
 	}
 
+	query = `UPDATE tender
+	         SET current_version = $1
+	         WHERE id = $2;`
+
+	_, err = repo.dtb.Exec(query, latestVersion, tenderID)
+	if err != nil {
+		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: обновление текущей версии тендера: %v", err)
+	}
+
 	tnd, err := GetTender(repo.dtb, tenderID)
 	if err != nil {
 		return nil, -1, err
 	}
 
 	return tnd, 200, nil
+}
+
+func getParam(dtb *sql.DB, param, tenderID string, version int32) (string, error) {
+	query := fmt.Sprintf(`
+		SELECT %s
+		FROM tender_versions
+		WHERE tender_id = $1 AND version = $2;`, param)
+
+	var paramVal string
+	err := dtb.QueryRow(query, tenderID, version).Scan(&paramVal)
+	if err != nil {
+		return "", fmt.Errorf("ошибка запроса к базе данных: извлечение параметра, который не должен быть изменен: %v", err)
+	}
+	return paramVal, nil
 }

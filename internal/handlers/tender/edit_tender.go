@@ -71,13 +71,15 @@ func (hnd *TenderHandler) EditTender(wrt http.ResponseWriter, rqt *http.Request)
 		return
 	}
 
-	fail := tnd.CheckServiceType(string(trq.ServiceType))
-	if fail {
-		errSend := handlers.SendBadReq(wrt)
-		if errSend != nil {
-			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+	if trq.ServiceType != "" {
+		fail := tnd.CheckServiceType(string(trq.ServiceType))
+		if fail {
+			errSend := handlers.SendBadReq(wrt)
+			if errSend != nil {
+				log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+			}
+			return
 		}
-		return
 	}
 
 	tdr, code, err := hnd.TenderRepo.EditTender(trq, tenderID, username)
