@@ -1,8 +1,8 @@
 package bid
 
 import (
+	"database/sql"
 	"fmt"
-	"strings"
 )
 
 // EditBid редактирует параметры предложения
@@ -28,52 +28,7 @@ func (repo *BidDBRepository) EditBid(bdi BidEditionInput, bidID, username string
 		return nil, 404, err
 	}
 
-	query := `
-	        SELECT current_version
-		    FROM bid
-		    WHERE id = $1;`
-
-	var currentVersion int
-	err = repo.dtb.QueryRow(query, bidID).Scan(&currentVersion)
-	if err != nil {
-		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение текущей версии предложения: %v", err)
-	}
-
-	currentVersion++
-
-	query = `
-		     UPDATE bid
-		     SET current_version = $1
-		     WHERE id = $2;`
-
-	_, err = repo.dtb.Exec(query, currentVersion, bidID)
-	if err != nil {
-		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: обновление текущей версии предложения: %v", err)
-	}
-
-	// maxArgs - максимальное количество аргументов
-	maxArgs := 4
-	args := make([]interface{}, 0, maxArgs)
-	query = "INSERT INTO bid_versions (version, "
-	args = append(args, currentVersion)
-	noChanges := true
-	counter := 1
-
-	if bdi.Name != "" {
-		args = append(args, bdi.Name)
-		query = fmt.Sprintf("%sname, ", query)
-		noChanges = false
-		counter++
-	}
-
-	if bdi.Description != "" {
-		args = append(args, bdi.Description)
-		query = fmt.Sprintf("%sdescription, ", query)
-		noChanges = false
-		counter++
-	}
-
-	if noChanges {
+	if bdi.Name == "" && bdi.Description == "" {
 		bid, err := GetBid(repo.dtb, bidID)
 		if err != nil {
 			return nil, -1, err
@@ -81,17 +36,44 @@ func (repo *BidDBRepository) EditBid(bdi BidEditionInput, bidID, username string
 		return bid, 200, nil
 	}
 
-	counter++
-	args = append(args, bidID)
-	query = fmt.Sprintf("%sbid_id)", query)
-	query = fmt.Sprintf("%s VALUES (", query)
+	query := `
+		SELECT MAX(version)
+		FROM bid_versions
+		WHERE bid_id = $1;
+	`
 
-	for cnt := 1; cnt <= counter; cnt++ {
-		query = fmt.Sprintf("%s$%d, ", query, cnt)
+	var latestVersion int32
+	err = repo.dtb.QueryRow(query, bidID).Scan(&latestVersion)
+	if err != nil {
+		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение последней версии предложения: %v", err)
 	}
 
-	query = strings.TrimSuffix(query, ", ")
-	query = fmt.Sprintf("%s);", query)
+	// maxArgs - максимальное количество аргументов
+	maxArgs := 4
+	args := make([]interface{}, maxArgs)
+	query = "INSERT bid_versions (version, name, description, bid_id) VALUES ($1, $2, $3, $4);"
+
+	if bdi.Name == "" {
+		args[1], err = getParam(repo.dtb, "name", bidID, latestVersion)
+		if err != nil {
+			return nil, -1, err
+		}
+	} else {
+		args[1] = bdi.Name
+	}
+
+	if bdi.Description == "" {
+		args[2], err = getParam(repo.dtb, "description", bidID, latestVersion)
+		if err != nil {
+			return nil, -1, err
+		}
+	} else {
+		args[2] = bdi.Description
+	}
+
+	latestVersion++
+	args[0] = latestVersion
+	args[3] = bidID
 
 	result, err := repo.dtb.Exec(query, args...)
 	if err != nil {
@@ -107,9 +89,33 @@ func (repo *BidDBRepository) EditBid(bdi BidEditionInput, bidID, username string
 		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: не добавились параметры новой версии предложения")
 	}
 
+	query = `
+		     UPDATE bid
+		     SET current_version = $1
+		     WHERE id = $2;`
+
+	_, err = repo.dtb.Exec(query, latestVersion, bidID)
+	if err != nil {
+		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: обновление текущей версии предложения: %v", err)
+	}
+
 	bid, err := GetBid(repo.dtb, bidID)
 	if err != nil {
 		return nil, -1, err
 	}
 	return bid, 200, nil
+}
+
+func getParam(dtb *sql.DB, param, bidID string, version int32) (string, error) {
+	query := fmt.Sprintf(`
+		SELECT %s
+		FROM bid_versions
+		WHERE bid_id = $1 AND version = $2;`, param)
+
+	var paramVal string
+	err := dtb.QueryRow(query, bidID, version).Scan(&paramVal)
+	if err != nil {
+		return "", fmt.Errorf("ошибка запроса к базе данных: извлечение параметра, который не должен быть изменен: %v", err)
+	}
+	return paramVal, nil
 }
