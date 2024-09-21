@@ -13,7 +13,10 @@ import (
 // CreateTender создает новый тендер с заданными параметрами
 func (hnd *TenderHandler) CreateTender(wrt http.ResponseWriter, rqt *http.Request) {
 	if rqt.Method != http.MethodPost {
-		wrt.WriteHeader(http.StatusBadRequest)
+		errSend := handlers.SendBadReq(wrt)
+		if errSend != nil {
+			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+		}
 		return
 	}
 
@@ -46,6 +49,13 @@ func (hnd *TenderHandler) CreateTender(wrt http.ResponseWriter, rqt *http.Reques
 		}
 		return
 
+	case tnd.CheckServiceType(trq.ServiceType):
+		errSend := handlers.SendBadReq(wrt)
+		if errSend != nil {
+			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+		}
+		return
+
 	case tdOrgID == 0 || tdOrgID > 100:
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
@@ -54,15 +64,6 @@ func (hnd *TenderHandler) CreateTender(wrt http.ResponseWriter, rqt *http.Reques
 		return
 
 	case trq.CreatorUsername == "":
-		errSend := handlers.SendBadReq(wrt)
-		if errSend != nil {
-			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-		}
-		return
-	}
-
-	fail := tnd.CheckServiceType(trq.ServiceType)
-	if fail {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
