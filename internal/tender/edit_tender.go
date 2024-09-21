@@ -12,6 +12,11 @@ func (repo *TenderDBRepository) EditTender(tei TenderEditionInput, tenderID, use
 		return nil, 401, err
 	}
 
+	valid, err = CheckTender(repo.dtb, tenderID)
+	if !valid || err != nil {
+		return nil, 404, err
+	}
+
 	var userID string
 	err = repo.dtb.QueryRow("SELECT id FROM employee WHERE username = $1", username).Scan(&userID)
 	if err != nil {
@@ -21,11 +26,6 @@ func (repo *TenderDBRepository) EditTender(tei TenderEditionInput, tenderID, use
 	valid, err = CheckRights(repo.dtb, tenderID, userID)
 	if !valid || err != nil {
 		return nil, 403, err
-	}
-
-	valid, err = CheckTender(repo.dtb, tenderID)
-	if !valid || err != nil {
-		return nil, 404, err
 	}
 
 	if tei.Name == "" && tei.Description == "" && tei.ServiceType == "" {
