@@ -40,20 +40,29 @@ func (repo *TenderDBRepository) RollbackTender(version int32, tenderID, username
 		return nil, 403, nil
 	}
 
-	err = swapParams(repo.dtb, version, tenderID)
+	var currentVersion int32
+	query = "SELECT current_version FROM tender WHERE id = $1;"
+	err = repo.dtb.QueryRow(query, tenderID).Scan(&currentVersion)
 	if err != nil {
-		return nil, -1, err
+		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение текущей версии тендера: %v", err)
 	}
 
-	version++
-	query = `
+	if currentVersion != version {
+		err = swapParams(repo.dtb, version, tenderID)
+		if err != nil {
+			return nil, -1, err
+		}
+
+		version++
+		query = `
 		     UPDATE tender
 		     SET current_version = $1
 		     WHERE id = $2;`
 
-	_, err = repo.dtb.Exec(query, version, tenderID)
-	if err != nil {
-		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: обновление текущей версии тендера: %v", err)
+		_, err = repo.dtb.Exec(query, version, tenderID)
+		if err != nil {
+			return nil, -1, fmt.Errorf("ошибка запроса к базе данных: обновление текущей версии тендера: %v", err)
+		}
 	}
 
 	tnd, err := GetTender(repo.dtb, tenderID)

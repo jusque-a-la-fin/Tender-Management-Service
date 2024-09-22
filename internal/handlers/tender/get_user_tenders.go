@@ -13,7 +13,10 @@ import (
 // GetUserTenders получает список тендеров текущего пользователя
 func (hnd *TenderHandler) GetUserTenders(wrt http.ResponseWriter, rqt *http.Request) {
 	if rqt.Method != http.MethodGet {
-		wrt.WriteHeader(http.StatusBadRequest)
+		errSend := handlers.SendBadReq(wrt)
+		if errSend != nil {
+			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+		}
 		return
 	}
 
@@ -22,13 +25,19 @@ func (hnd *TenderHandler) GetUserTenders(wrt http.ResponseWriter, rqt *http.Requ
 	if limitStr != "" {
 		limitInt, err := strconv.Atoi(limitStr)
 		if err != nil {
-			wrt.WriteHeader(http.StatusBadRequest)
+			errSend := handlers.SendBadReq(wrt)
+			if errSend != nil {
+				log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+			}
 			return
 		}
 
 		limit = int32(limitInt)
 		if limit < 0 || limit > 50 {
-			wrt.WriteHeader(http.StatusBadRequest)
+			errSend := handlers.SendBadReq(wrt)
+			if errSend != nil {
+				log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+			}
 			return
 		}
 	}
@@ -38,13 +47,19 @@ func (hnd *TenderHandler) GetUserTenders(wrt http.ResponseWriter, rqt *http.Requ
 	if offsetStr != "" {
 		offsetInt, err := strconv.Atoi(offsetStr)
 		if err != nil {
-			wrt.WriteHeader(http.StatusBadRequest)
+			errSend := handlers.SendBadReq(wrt)
+			if errSend != nil {
+				log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+			}
 			return
 		}
 
 		offset = int32(offsetInt)
 		if offset < 0 {
-			wrt.WriteHeader(http.StatusBadRequest)
+			errSend := handlers.SendBadReq(wrt)
+			if errSend != nil {
+				log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+			}
 			return
 		}
 	}
@@ -52,7 +67,10 @@ func (hnd *TenderHandler) GetUserTenders(wrt http.ResponseWriter, rqt *http.Requ
 	username := rqt.URL.Query().Get("username")
 	usernameLen := utf8.RuneCountInString(username)
 	if usernameLen == 0 {
-		wrt.WriteHeader(http.StatusBadRequest)
+		errSend := handlers.SendBadReq(wrt)
+		if errSend != nil {
+			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+		}
 		return
 	}
 

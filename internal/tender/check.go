@@ -29,7 +29,7 @@ func CheckTender(dtb *sql.DB, tenderID string) (bool, error) {
 	return exists, nil
 }
 
-// CheckTenderAndVersion проверяет, существует ли тендер или его версия
+// CheckTenderAndVersion проверяет, существует ли версия тендера, к которой нужно откатить тендер
 func CheckTenderAndVersion(dtb *sql.DB, version int32, tenderID string) (bool, error) {
 	var exists bool
 	query := `

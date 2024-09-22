@@ -13,7 +13,10 @@ import (
 // GetTenderStatus получает статус тендера по его уникальному идентификатору
 func (hnd *TenderHandler) GetTenderStatus(wrt http.ResponseWriter, rqt *http.Request) {
 	if rqt.Method != http.MethodGet {
-		wrt.WriteHeader(http.StatusBadRequest)
+		errSend := handlers.SendBadReq(wrt)
+		if errSend != nil {
+			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+		}
 		return
 	}
 
@@ -21,14 +24,20 @@ func (hnd *TenderHandler) GetTenderStatus(wrt http.ResponseWriter, rqt *http.Req
 	tenderID := vars["tenderId"]
 	tenderIDLen := utf8.RuneCountInString(tenderID)
 	if tenderIDLen == 0 || tenderIDLen > 100 {
-		wrt.WriteHeader(http.StatusBadRequest)
+		errSend := handlers.SendBadReq(wrt)
+		if errSend != nil {
+			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+		}
 		return
 	}
 
 	username := rqt.URL.Query().Get("username")
 	usernameLen := utf8.RuneCountInString(username)
 	if usernameLen == 0 {
-		wrt.WriteHeader(http.StatusBadRequest)
+		errSend := handlers.SendBadReq(wrt)
+		if errSend != nil {
+			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
+		}
 		return
 	}
 

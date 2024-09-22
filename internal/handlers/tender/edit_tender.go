@@ -106,7 +106,7 @@ func (hnd *TenderHandler) EditTender(wrt http.ResponseWriter, rqt *http.Request)
 		return
 
 	case 404:
-		err := "Предложение не найдено"
+		err := "Тендер не найден"
 		errResp := handlers.RespondWithError(wrt, err, http.StatusNotFound)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)

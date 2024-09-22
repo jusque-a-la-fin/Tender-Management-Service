@@ -45,7 +45,7 @@ func (repo *TenderDBRepository) GetTenders(startIndex, endIndex int32, serviceTy
 	if !rows.Next() {
 		return tenders, nil
 	}
-	
+
 	for rows.Next() {
 		tnd := Tender{}
 		err := rows.Scan(&tnd.ID, &tnd.Status, &tnd.Version, &tnd.CreatedAt,
