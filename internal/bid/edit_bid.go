@@ -11,7 +11,12 @@ func (repo *BidDBRepository) EditBid(bdi BidEditionInput, bidID, username string
 	if !valid || err != nil {
 		return nil, 401, err
 	}
-
+	
+	valid, err = сheckBid(repo.dtb, bidID)
+	if !valid || err != nil {
+		return nil, 404, err
+	}
+	
 	var userID string
 	err = repo.dtb.QueryRow("SELECT id FROM employee WHERE username = $1", username).Scan(&userID)
 	if err != nil {
@@ -21,11 +26,6 @@ func (repo *BidDBRepository) EditBid(bdi BidEditionInput, bidID, username string
 	valid, err = checkEditionRights(repo.dtb, bidID, userID)
 	if !valid || err != nil {
 		return nil, 403, err
-	}
-
-	valid, err = сheckBid(repo.dtb, bidID)
-	if !valid || err != nil {
-		return nil, 404, err
 	}
 
 	if bdi.Name == "" && bdi.Description == "" {
@@ -51,7 +51,7 @@ func (repo *BidDBRepository) EditBid(bdi BidEditionInput, bidID, username string
 	// maxArgs - максимальное количество аргументов
 	maxArgs := 4
 	args := make([]interface{}, maxArgs)
-	query = "INSERT bid_versions (version, name, description, bid_id) VALUES ($1, $2, $3, $4);"
+	query = "INSERT INTO bid_versions (version, name, description, bid_id) VALUES ($1, $2, $3, $4);"
 
 	if bdi.Name == "" {
 		args[1], err = getParam(repo.dtb, "name", bidID, latestVersion)
