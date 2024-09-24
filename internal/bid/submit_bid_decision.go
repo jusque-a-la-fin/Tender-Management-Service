@@ -77,12 +77,14 @@ func (repo *BidDBRepository) SubmitBidDecision(bsi BidSubmissionInput) (*Bid, in
 	}
 
 	if rejectedCount > 0 {
-		err = RejectBid(repo.dtb, bsi.BidID)
+		// отклонение предложения
+		err = CancelBid(repo.dtb, bsi.BidID)
 		if err != nil {
 			return nil, -1, err
 		}
 
 	} else {
+		// согласование предложения
 		approvedCount, err := getDecisionCount(repo.dtb, Approved, organizationID, bsi.BidID)
 		if err != nil {
 			return nil, -1, err
@@ -106,8 +108,8 @@ func (repo *BidDBRepository) SubmitBidDecision(bsi BidSubmissionInput) (*Bid, in
 	return bid, 200, nil
 }
 
-// RejectBid отклоняет предложение
-func RejectBid(dtb *sql.DB, bidID string) error {
+// CancelBid отменяет предложение
+func CancelBid(dtb *sql.DB, bidID string) error {
 	query := `
 	UPDATE bid
 	SET status = $1
