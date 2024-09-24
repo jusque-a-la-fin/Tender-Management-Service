@@ -11,19 +11,26 @@ func (repo *BidDBRepository) EditBid(bdi BidEditionInput, bidID, username string
 	if !valid || err != nil {
 		return nil, 401, err
 	}
-	
+
 	valid, err = сheckBid(repo.dtb, bidID)
 	if !valid || err != nil {
 		return nil, 404, err
 	}
-	
-	var userID string
-	err = repo.dtb.QueryRow("SELECT id FROM employee WHERE username = $1", username).Scan(&userID)
-	if err != nil {
-		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение id для username: %v", err)
+
+	var authorID string
+	errEmp := repo.dtb.QueryRow("SELECT id FROM employee WHERE username = $1", username).Scan(&authorID)
+	if errEmp != nil && errEmp != sql.ErrNoRows {
+		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение id работника: %v", err)
 	}
 
-	valid, err = checkEditionRights(repo.dtb, bidID, userID)
+	if errEmp == sql.ErrNoRows {
+		err := repo.dtb.QueryRow("SELECT id FROM organization WHERE name = $1", username).Scan(&authorID)
+		if err != nil {
+			return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение id организации: %v", err)
+		}
+	}
+
+	valid, err = checkEditionRights(repo.dtb, bidID, authorID)
 	if !valid || err != nil {
 		return nil, 403, err
 	}

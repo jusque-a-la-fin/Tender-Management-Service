@@ -41,3 +41,11 @@ func SendFeedbackBadReq(wrt http.ResponseWriter) error {
 	errResp := RespondWithError(wrt, err, http.StatusBadRequest)
 	return errResp
 }
+
+func CheckCode(code int) bool {
+	switch code {
+	case 401, 403, 404:
+		return true
+	}
+	return false
+}

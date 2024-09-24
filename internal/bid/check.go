@@ -28,7 +28,11 @@ func checkAuthor(dtb *sql.DB, authorId string, authorType AuthorTypeEnum) (bool,
 }
 
 // checkCreationRights проверяет, достаточно ли прав для создания предложения
-func checkCreationRights(dtb *sql.DB, authorId string) (bool, error) {
+func checkCreationRights(dtb *sql.DB, authorId string, authorType AuthorTypeEnum) (bool, error) {
+	if authorType == "Organization" {
+		return true, nil
+	}
+
 	var hasRights bool
 
 	query := `

@@ -84,7 +84,9 @@ func (hnd *BidHandler) CreateBid(wrt http.ResponseWriter, rqt *http.Request) {
 	nbd, code, err := hnd.BidRepo.CreateBid(bdi)
 	if err != nil {
 		log.Println(err)
-		return
+		if !handlers.CheckCode(code) {
+			return
+		}
 	}
 
 	switch code {
@@ -106,7 +108,7 @@ func (hnd *BidHandler) CreateBid(wrt http.ResponseWriter, rqt *http.Request) {
 
 	case 404:
 		err := "Тендер не найден"
-		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
+		errResp := handlers.RespondWithError(wrt, err, http.StatusNotFound)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
 		}

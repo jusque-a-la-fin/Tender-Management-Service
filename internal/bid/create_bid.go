@@ -12,7 +12,7 @@ func (repo *BidDBRepository) CreateBid(bci BidCreationInput) (*Bid, int, error) 
 		return nil, 401, err
 	}
 
-	valid, err = checkCreationRights(repo.dtb, bci.AuthorId)
+	valid, err = checkCreationRights(repo.dtb, bci.AuthorId, bci.AuthorType)
 	if !valid || err != nil {
 		return nil, 403, err
 	}
