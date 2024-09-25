@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS tender_versions (
 CREATE TABLE IF NOT EXISTS bid (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     status bid_status_enum NOT NULL,
-    tender_id UUID UNIQUE NOT NULL REFERENCES tender(id) ON DELETE CASCADE,
+    tender_id UUID NOT NULL REFERENCES tender(id) ON DELETE CASCADE,
     author_type author_type_enum NOT NULL,
     author_id UUID NOT NULL,
     current_version INTEGER NOT NULL,

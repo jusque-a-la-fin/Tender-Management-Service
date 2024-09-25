@@ -43,7 +43,7 @@ func (hnd *BidHandler) UpdateBidStatus(wrt http.ResponseWriter, rqt *http.Reques
 	}
 
 	check := bid.CheckStatusEnum(newStatus)
-	if !check {
+	if check {
 		errSend := handlers.SendBadReq(wrt)
 		if errSend != nil {
 			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
