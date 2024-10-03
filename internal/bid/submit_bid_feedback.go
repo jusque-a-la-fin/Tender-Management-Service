@@ -2,7 +2,7 @@ package bid
 
 import (
 	"fmt"
-	"tendermanagement/internal/tender"
+	"tendermanagement/internal"
 )
 
 // SubmitBidFeedback отправляет отзыв по предложению
@@ -12,7 +12,7 @@ func (repo *BidDBRepository) SubmitBidFeedback(bfi BidFeedbackInput) (*Bid, int,
 		return nil, 404, err
 	}
 
-	valid, err = tender.CheckUser(repo.dtb, bfi.Username)
+	valid, err = internal.CheckUser(repo.dtb, bfi.Username)
 	if !valid || err != nil {
 		return nil, 401, err
 	}
@@ -25,13 +25,13 @@ func (repo *BidDBRepository) SubmitBidFeedback(bfi BidFeedbackInput) (*Bid, int,
 	}
 
 	var userID string
-	err = repo.dtb.QueryRow("SELECT id FROM employee WHERE username = $1", bfi.Username).Scan(&userID)
+	err = repo.dtb.QueryRow("SELECT id FROM employee WHERE username = $1;", bfi.Username).Scan(&userID)
 	if err != nil {
 		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение id для username: %v", err)
 	}
 
 	var organizationID string
-	err = repo.dtb.QueryRow("SELECT organization_id FROM tender WHERE id = $1", tenderID).Scan(&organizationID)
+	err = repo.dtb.QueryRow("SELECT organization_id FROM tender WHERE id = $1;", tenderID).Scan(&organizationID)
 	if err != nil {
 		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение id для username: %v", err)
 	}
@@ -39,7 +39,7 @@ func (repo *BidDBRepository) SubmitBidFeedback(bfi BidFeedbackInput) (*Bid, int,
 	var hasRights bool
 	query = `SELECT EXISTS (
                   SELECT 1
-                  FROM organization_responsible
+                  FROM tender
                   WHERE organization_id = $1 AND user_id = $2
               ) AS has_rights;`
 
@@ -53,10 +53,10 @@ func (repo *BidDBRepository) SubmitBidFeedback(bfi BidFeedbackInput) (*Bid, int,
 	}
 
 	query = `
-	    INSERT INTO bid_review (description, organization_id, user_id, bid_id)
-	    VALUES ($1, $2, $3, $4);`
+	    INSERT INTO bid_review (description, user_id, bid_id)
+	    VALUES ($1, $2, $3);`
 
-	result, err := repo.dtb.Exec(query, bfi.BidFeedback, organizationID, userID, bfi.BidID)
+	result, err := repo.dtb.Exec(query, bfi.BidFeedback, userID, bfi.BidID)
 	if err != nil {
 		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: добавление нового отзыва по предложению: %v", err)
 	}

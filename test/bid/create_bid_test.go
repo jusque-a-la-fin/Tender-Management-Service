@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"net/http/httptest"
-	"tendermanagement/internal/bid"
 	"tendermanagement/internal/datastore"
 	bhd "tendermanagement/internal/handlers/bid"
 	"tendermanagement/test"
 	"testing"
 )
+
+var createBidUrl = "/bids/new"
 
 var testsExistence = []bhd.BidCreationReq{
 	{
@@ -34,9 +34,7 @@ var testsExistence = []bhd.BidCreationReq{
 func TestCreateBidDoesntExist(t *testing.T) {
 	test.SetVars()
 	for _, testBid := range testsExistence {
-
-		url := "/bids/new"
-		rr := test.ProcessReq(t, nil, testBid, url, url, http.MethodPost, "CreateBid")
+		rr := test.ProcessReq(t, nil, testBid, createBidUrl, createBidUrl, http.MethodPost, "CreateBid")
 		code := rr.Code
 		if code != http.StatusUnauthorized {
 			t.Errorf("Ожидался код состояния ответа: %d, но получен: %d", http.StatusUnauthorized, code)
@@ -53,13 +51,12 @@ func TestCreateBidForbidden(t *testing.T) {
 	body := bhd.BidCreationReq{
 		Name:        "Доставка товары Казань - Москва",
 		Description: "Нужно доставить оборудование для олимпиады по робототехнике",
-		TenderID:    "8b8182b6-4907-4504-ae1a-f8c8ad75def1",
+		TenderID:    "1ffac8e1-42d3-4351-a778-751b9dacf4b0",
 		AuthorType:  "User",
-		AuthorId:    "550e8400-e29b-41d4-a716-446655440001",
+		AuthorId:    "550e8400-e29b-41d4-a716-44665544001b",
 	}
 
-	url := "/bids/new"
-	rr := test.ProcessReq(t, nil, body, url, url, http.MethodPost, "CreateBid")
+	rr := test.ProcessReq(t, nil, body, createBidUrl, createBidUrl, http.MethodPost, "CreateBid")
 	code := rr.Code
 	if code != http.StatusForbidden {
 		t.Errorf("Ожидался код состояния ответа: %d, но получен: %d", http.StatusForbidden, code)
@@ -80,8 +77,7 @@ func TestCreateBidNotFound(t *testing.T) {
 		AuthorId:    "550e8400-e29b-41d4-a716-446655440002",
 	}
 
-	url := "/bids/new"
-	rr := test.ProcessReq(t, nil, body, url, url, http.MethodPost, "CreateBid")
+	rr := test.ProcessReq(t, nil, body, createBidUrl, createBidUrl, http.MethodPost, "CreateBid")
 	code := rr.Code
 	if code != http.StatusNotFound {
 		t.Errorf("Ожидался код состояния ответа: %d, но получен: %d", http.StatusNotFound, code)
@@ -176,7 +172,6 @@ func TestCreateBidBadRequest(t *testing.T) {
 	bidHandler := test.GetBidHandler(dtb)
 	handler := http.HandlerFunc(bidHandler.CreateBid)
 	expected := "Неверный формат запроса или его параметры"
-	url := "/bids/new"
 
 	// некорректные параметры тела запроса
 	for _, testBR := range testsBadRequest {
@@ -185,7 +180,7 @@ func TestCreateBidBadRequest(t *testing.T) {
 			t.Fatalf("Ошибка сериализации тела запроса клиента: %v", err)
 		}
 
-		req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(data))
+		req, err := http.NewRequest(http.MethodPost, createBidUrl, bytes.NewBuffer(data))
 		if err != nil {
 			t.Fatal("Ошибка создания объекта *http.Request:", err)
 		}
@@ -195,7 +190,7 @@ func TestCreateBidBadRequest(t *testing.T) {
 	}
 
 	// некорректный метод запроса
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(http.MethodGet, createBidUrl, nil)
 	if err != nil {
 		t.Fatal("Ошибка создания объекта *http.Request:", err)
 	}
@@ -226,9 +221,8 @@ func TestCreateBidOK(t *testing.T) {
 	test.SetVars()
 
 	for _, testCreation := range testsCreation {
-		url := "/bids/new"
-		rr := test.ProcessReq(t, nil, testCreation, url, url, http.MethodPost, "CreateBid")
-		bid := handleBidResponse(t, rr)
+		rr := test.ProcessReq(t, nil, testCreation, createBidUrl, createBidUrl, http.MethodPost, "CreateBid")
+		bid := test.HandleBidResponse(t, rr)
 
 		name := bid.Name
 		bName := testCreation.Name
@@ -271,16 +265,4 @@ func TestCreateBidOK(t *testing.T) {
 			t.Errorf("Ожидалось значение Description: %d, но получено: %d", 1, version)
 		}
 	}
-}
-
-func handleBidResponse(t *testing.T, rr *httptest.ResponseRecorder) *bid.Bid {
-	test.CheckCodeAndMime(t, rr)
-
-	var nbd bid.Bid
-	err := json.Unmarshal(rr.Body.Bytes(), &nbd)
-	if err != nil {
-		t.Fatalf("Ошибка десериализации тела ответа сервера: %v", err)
-	}
-
-	return &nbd
 }

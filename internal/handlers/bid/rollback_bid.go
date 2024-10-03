@@ -63,7 +63,9 @@ func (hnd *BidHandler) RollbackBid(wrt http.ResponseWriter, rqt *http.Request) {
 	nbd, code, err := hnd.BidRepo.RollbackBid(bri)
 	if err != nil {
 		log.Println(err)
-		return
+		if !handlers.CheckCode(code) {
+			return
+		}
 	}
 
 	switch code {

@@ -61,7 +61,9 @@ func (hnd *BidHandler) SubmitBidFeedback(wrt http.ResponseWriter, rqt *http.Requ
 	nbd, code, err := hnd.BidRepo.SubmitBidFeedback(bfi)
 	if err != nil {
 		log.Println(err)
-		return
+		if !handlers.CheckCode(code) {
+			return
+		}
 	}
 
 	switch code {

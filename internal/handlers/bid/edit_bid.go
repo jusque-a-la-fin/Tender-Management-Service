@@ -74,7 +74,9 @@ func (hnd *BidHandler) EditBid(wrt http.ResponseWriter, rqt *http.Request) {
 	bid, code, err := hnd.BidRepo.EditBid(bdi, bidID, username)
 	if err != nil {
 		log.Println(err)
-		return
+		if !handlers.CheckCode(code) {
+			return
+		}
 	}
 
 	switch code {

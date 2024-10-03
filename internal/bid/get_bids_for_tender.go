@@ -12,7 +12,7 @@ import (
 
 // GetBidsForTender получает предложения, связанные с указанным тендером
 func (repo *BidDBRepository) GetBidsForTender(gbi GetBidsInput) ([]*Bid, int, error) {
-	valid, err := checkUsername(repo.dtb, gbi.Username)
+	valid, err := checkAuthorName(repo.dtb, gbi.Username)
 	if !valid || err != nil {
 		return nil, 401, err
 	}
@@ -22,18 +22,18 @@ func (repo *BidDBRepository) GetBidsForTender(gbi GetBidsInput) ([]*Bid, int, er
 		return nil, 404, err
 	}
 
-	var userID string
-	err = repo.dtb.QueryRow("SELECT id FROM employee WHERE username = $1", gbi.Username).Scan(&userID)
+	var userId string
+	err = repo.dtb.QueryRow("SELECT id FROM employee WHERE username = $1;", gbi.Username).Scan(&userId)
 	if err != nil {
 		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение id для username: %v", err)
 	}
 
-	valid, err = tender.CheckRights(repo.dtb, gbi.TenderId, userID)
+	valid, err = tender.CheckRights(repo.dtb, gbi.TenderId, userId)
 	if !valid || err != nil {
 		return nil, 403, err
 	}
 
-	nbids, err := getBids(repo.dtb, gbi.TenderId)
+	nbids, err := getBids(repo.dtb, gbi.TenderId, gbi.Limit, gbi.Offset)
 	if err != nil {
 		return nil, -1, err
 	}
@@ -47,14 +47,11 @@ func (repo *BidDBRepository) GetBidsForTender(gbi GetBidsInput) ([]*Bid, int, er
 		return clr.CompareString(nbids[i].Name, nbids[j].Name) < 0
 	})
 
-	if gbi.Offset != tender.NoValue && gbi.EndIndex != tender.NoValue {
-		return nbids[gbi.Offset:gbi.EndIndex], 200, nil
-	}
 	return nbids, 200, nil
 }
 
 // getBids получает предложения
-func getBids(dtb *sql.DB, tenderID string) ([]*Bid, error) {
+func getBids(dtb *sql.DB, tenderID string, limit, offset int32) ([]*Bid, error) {
 	var nbids []*Bid
 	query := `
         SELECT 
@@ -69,9 +66,19 @@ func getBids(dtb *sql.DB, tenderID string) ([]*Bid, error) {
         FROM 
             bid b
         JOIN 
-            bid_versions bv ON b.id = bv.bid_id
+            bid_versions bv ON b.id = bv.bid_id AND b.current_version = bv.version
         WHERE 
-            b.tender_id = $1;`
+            b.tender_id = $1`
+
+	if limit > 0 {
+		query = fmt.Sprintf("%s LIMIT %d", query, limit)
+	}
+
+	if offset > 0 {
+		query = fmt.Sprintf("%s OFFSET %d", query, offset)
+	}
+
+	query = fmt.Sprintf("%s;", query)
 
 	rows, err := dtb.Query(query, tenderID)
 	if err != nil {

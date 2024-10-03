@@ -44,7 +44,9 @@ func (hnd *TenderHandler) GetTenderStatus(wrt http.ResponseWriter, rqt *http.Req
 	status, code, err := hnd.TenderRepo.GetTenderStatus(username, tenderID)
 	if err != nil {
 		log.Println(err)
-		return
+		if !handlers.CheckCode(code) {
+			return
+		}
 	}
 
 	switch code {

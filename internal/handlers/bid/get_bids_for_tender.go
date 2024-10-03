@@ -44,7 +44,7 @@ func (hnd *BidHandler) GetBidsForTender(wrt http.ResponseWriter, rqt *http.Reque
 		return
 	}
 
-	var limit int32 = 0
+	limit := tender.NoValue
 	limitStr := rqt.URL.Query().Get("limit")
 	if limitStr != "" {
 		limitInt, err := strconv.Atoi(limitStr)
@@ -87,19 +87,20 @@ func (hnd *BidHandler) GetBidsForTender(wrt http.ResponseWriter, rqt *http.Reque
 			return
 		}
 	}
-	endIndex := offset + limit
 
 	gbi := bds.GetBidsInput{
 		TenderId: tenderID,
 		Username: username,
+		Limit:    limit,
 		Offset:   offset,
-		EndIndex: endIndex,
 	}
 
 	nbds, code, err := hnd.BidRepo.GetBidsForTender(gbi)
 	if err != nil {
 		log.Println(err)
-		return
+		if !handlers.CheckCode(code) {
+			return
+		}
 	}
 
 	switch code {
@@ -121,7 +122,7 @@ func (hnd *BidHandler) GetBidsForTender(wrt http.ResponseWriter, rqt *http.Reque
 
 	case 404:
 		err := "Тендер или предложение не найдено"
-		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
+		errResp := handlers.RespondWithError(wrt, err, http.StatusNotFound)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
 		}

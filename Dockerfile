@@ -8,6 +8,7 @@ RUN go mod download
 
 COPY /cmd/ /app/cmd/
 COPY /internal/ /app/internal/
+COPY /test/ /app/test/
 COPY ./init.sql /app/init.sql
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o tendermanagement ./cmd/main.go

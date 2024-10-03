@@ -7,7 +7,7 @@ import (
 
 // RollbackBid откатывает параметры предложения к указанной версии
 func (repo *BidDBRepository) RollbackBid(bri BidRollbackInput) (*Bid, int, error) {
-	valid, err := checkUsername(repo.dtb, bri.Username)
+	valid, err := checkAuthorName(repo.dtb, bri.Username)
 	if !valid || err != nil {
 		return nil, 401, err
 	}

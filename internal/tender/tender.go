@@ -6,7 +6,7 @@ import (
 )
 
 // NoValue - отсутствие значения
-const NoValue int32 = -1
+const NoValue int32 = 0
 
 // Tender - тендер в теле ответа
 type Tender struct {

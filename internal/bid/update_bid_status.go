@@ -1,10 +1,13 @@
 package bid
 
-import "fmt"
+import (
+	"fmt"
+	"tendermanagement/internal"
+)
 
 // UpdateBidStatus изменяет статус предложения по его уникальному идентификатору
 func (repo *BidDBRepository) UpdateBidStatus(bidID, username string, newStatus StatusEnum) (*Bid, int, error) {
-	valid, err := checkUsername(repo.dtb, username)
+	valid, err := internal.CheckUser(repo.dtb, username)
 	if !valid || err != nil {
 		return nil, 401, err
 	}

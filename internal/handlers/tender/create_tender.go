@@ -81,7 +81,9 @@ func (hnd *TenderHandler) CreateTender(wrt http.ResponseWriter, rqt *http.Reques
 	tcu, code, err := hnd.TenderRepo.CreateTender(tci, trq.CreatorUsername, trq.OrganizationID)
 	if err != nil {
 		log.Println(err)
-		return
+		if !handlers.CheckCode(code) {
+			return
+		}
 	}
 
 	switch code {

@@ -9,8 +9,8 @@ import (
 )
 
 var testRollbackUrls = []string{
-	"/bids/3820469e-0a87-43d2-b139-0eb5e253cbfa/rollback/1?username=user12",
-	"/bids/3820469e-0a87-43d2-b139-0eb5e253cbfa/rollback/2?username=user12",
+	"/bids/3820469e-0a87-43d2-b139-0eb5e253cbfa/rollback/2?username=user4",
+	"/bids/3820469e-0a87-43d2-b139-0eb5e253cbfa/rollback/1?username=user4",
 }
 
 // TestRollbackBidOK тестирует успешный откат параметров тендера к указанной версии

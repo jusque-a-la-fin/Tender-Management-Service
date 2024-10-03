@@ -64,7 +64,9 @@ func (hnd *BidHandler) UpdateBidStatus(wrt http.ResponseWriter, rqt *http.Reques
 	bid, code, err := hnd.BidRepo.UpdateBidStatus(bidID, username, bid.StatusEnum(newStatus))
 	if err != nil {
 		log.Println(err)
-		return
+		if !handlers.CheckCode(code) {
+			return
+		}
 	}
 
 	switch code {

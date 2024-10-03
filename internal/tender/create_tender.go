@@ -3,11 +3,12 @@ package tender
 import (
 	"database/sql"
 	"fmt"
+	"tendermanagement/internal"
 )
 
 // CreateTender создает новый тендер с заданными параметрами
 func (repo *TenderDBRepository) CreateTender(tci TenderCreationInput, creatorUsername, organizationID string) (*TenderCreationOutput, int, error) {
-	valid, err := CheckUser(repo.dtb, creatorUsername)
+	valid, err := internal.CheckUser(repo.dtb, creatorUsername)
 	if !valid || err != nil {
 		return nil, 401, err
 	}

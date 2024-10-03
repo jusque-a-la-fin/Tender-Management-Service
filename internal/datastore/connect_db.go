@@ -47,7 +47,7 @@ func CreateNewDB() (*sql.DB, error) {
 
 // setup создает необходимые таблицы
 func setup(dtb *sql.DB) error {
-	sqlScript, err := os.ReadFile("init.sql")
+	sqlScript, err := os.ReadFile("../../init.sql")
 	if err != nil {
 		return fmt.Errorf("ошибка чтения файла SQL-скрипта: %v", err)
 	}
@@ -58,4 +58,3 @@ func setup(dtb *sql.DB) error {
 	}
 	return nil
 }
-

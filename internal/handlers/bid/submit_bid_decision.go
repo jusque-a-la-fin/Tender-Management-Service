@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"tendermanagement/internal/bid"
 	"tendermanagement/internal/handlers"
+	"time"
 	"unicode/utf8"
 
 	"github.com/gorilla/mux"
@@ -58,42 +59,56 @@ func (hnd *BidHandler) SubmitBidDecision(wrt http.ResponseWriter, rqt *http.Requ
 		Username: username,
 	}
 
-	nbd, code, err := hnd.BidRepo.SubmitBidDecision(bsi)
+	tenderID, organizationID, code, err := hnd.BidRepo.AddBidDecisions(bsi)
 	if err != nil {
 		log.Println(err)
-		return
+		if !handlers.CheckCode(code) {
+			return
+		}
 	}
 
-	switch code {
-	case 401:
-		err := "Пользователь не существует или некорректен"
-		errResp := handlers.RespondWithError(wrt, err, http.StatusUnauthorized)
-		if errResp != nil {
-			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
-		}
-		return
+	time.Sleep(5 * time.Second)
 
-	case 403:
-		err := "Недостаточно прав для выполнения действия"
-		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
-		if errResp != nil {
-			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
+	hnd.DecisionOnce.Do(func() {
+		nbd, code, err := hnd.BidRepo.MakeFinalDecision(bsi.BidID, tenderID, organizationID)
+		if err != nil {
+			log.Println(err)
+			if !handlers.CheckCode(code) {
+				return
+			}
 		}
-		return
 
-	case 404:
-		err := "Предложение не найдено"
-		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
-		if errResp != nil {
-			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
+		switch code {
+		case 401:
+			err := "Пользователь не существует или некорректен"
+			errResp := handlers.RespondWithError(wrt, err, http.StatusUnauthorized)
+			if errResp != nil {
+				log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
+			}
+			return
+
+		case 403:
+			err := "Недостаточно прав для выполнения действия"
+			errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
+			if errResp != nil {
+				log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
+			}
+			return
+
+		case 404:
+			err := "Предложение не найдено"
+			errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
+			if errResp != nil {
+				log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
+			}
+			return
 		}
-		return
-	}
 
-	wrt.Header().Set("Content-Type", "application/json")
-	wrt.WriteHeader(http.StatusOK)
-	errJSON := json.NewEncoder(wrt).Encode(nbd)
-	if errJSON != nil {
-		log.Printf("ошибка отправки тела ответа: %v\n", errJSON)
-	}
+		wrt.Header().Set("Content-Type", "application/json")
+		wrt.WriteHeader(http.StatusOK)
+		errJSON := json.NewEncoder(wrt).Encode(nbd)
+		if errJSON != nil {
+			log.Printf("ошибка отправки тела ответа: %v\n", errJSON)
+		}
+	})
 }

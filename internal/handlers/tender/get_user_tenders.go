@@ -78,7 +78,9 @@ func (hnd *TenderHandler) GetUserTenders(wrt http.ResponseWriter, rqt *http.Requ
 	tenders, code, err := hnd.TenderRepo.GetUserTenders(offset, endIndex, username)
 	if err != nil {
 		log.Println(err)
-		return
+		if !handlers.CheckCode(code) {
+			return
+		}
 	}
 
 	if code == 401 {

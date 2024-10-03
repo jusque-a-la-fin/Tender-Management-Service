@@ -3,11 +3,6 @@
 ```bash
 git clone git@github.com:jusque-a-la-fin/Tender-Management-Service.git && cd Tender-Management-Service && docker compose up --build
 ```
-## Тесты
-Тесты можно запустить из корневой директории проекта с помощью:
-```bash
-go test -v ./...
-```
 ## Замечания
 -  Таблицы для остальных сущностей здесь: [init.sql](init.sql) 
 - Выполнены все дополнительные требования:

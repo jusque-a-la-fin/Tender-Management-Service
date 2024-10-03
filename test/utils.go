@@ -70,7 +70,7 @@ func ProcessReq(t *testing.T, dtb *sql.DB, body any, url, path, httpMethod, meth
 
 	var rr *httptest.ResponseRecorder
 	tenderMethods := []string{"CreateTender", "EditTender", "GetTenderStatus", "GetUserTenders", "RollbackTender", "UpdateTenderStatus"}
-	bidMethods := []string{"CreateBid", "EditBid", "UpdateBidStatus", "RollbackBid", "SubmitBidDecision", "SubmitBidFeedback"}
+	bidMethods := []string{"CreateBid", "EditBid", "GetUserBids", "GetBidsForTender", "GetBidStatus", "GetBidReviews", "UpdateBidStatus", "RollbackBid", "SubmitBidDecision", "SubmitBidFeedback"}
 
 	if contains(tenderMethods, method) {
 		tenderHandler := getTenderHandler(dtb)
@@ -107,9 +107,30 @@ func ProcessReq(t *testing.T, dtb *sql.DB, body any, url, path, httpMethod, meth
 		case "CreateBid":
 			handlerFunc = bidHandler.CreateBid
 			rr = ServeRequest(handlerFunc, req)
+			if rr.Code == http.StatusOK {
+				bid := HandleBidResponse(t, rr)
+				fmt.Println("DELETE", bid)
+				deleteBid(t, dtb, bid.ID)
+			}
 
 		case "EditBid":
 			handlerFunc = bidHandler.EditBid
+			rr = setupRouterAndServe(path, httpMethod, handlerFunc, req)
+
+		case "GetUserBids":
+			handlerFunc = bidHandler.GetUserBids
+			rr = setupRouterAndServe(path, httpMethod, handlerFunc, req)
+
+		case "GetBidsForTender":
+			handlerFunc = bidHandler.GetBidsForTender
+			rr = setupRouterAndServe(path, httpMethod, handlerFunc, req)
+
+		case "GetBidStatus":
+			handlerFunc = bidHandler.GetBidStatus
+			rr = setupRouterAndServe(path, httpMethod, handlerFunc, req)
+
+		case "GetBidReviews":
+			handlerFunc = bidHandler.GetBidReviews
 			rr = setupRouterAndServe(path, httpMethod, handlerFunc, req)
 
 		case "RollbackBid":
@@ -206,5 +227,97 @@ func CheckCodeAndMime(t *testing.T, rr *httptest.ResponseRecorder) {
 
 	if mime := rr.Header().Get("Content-Type"); mime != "application/json" {
 		t.Errorf("Заголовок Content-Type должен иметь MIME-тип application/json, но имеет %s", mime)
+	}
+}
+
+func ProcessIncorrectUrls(t *testing.T, path, httpMethod, method string, urls []string, expectedCode int) {
+	SetVars()
+	dtb, err := datastore.CreateNewDB()
+	if err != nil {
+		log.Fatalf("ошибка подключения к базе данных: %v", err)
+	}
+
+	for _, url := range urls {
+		rr := ProcessReq(t, dtb, nil, url, path, httpMethod, method)
+		code := rr.Code
+		if code != expectedCode {
+			t.Errorf("Ожидался код состояния ответа: %d, но получен: %d", expectedCode, code)
+		}
+	}
+}
+
+func ProcessIncorrectUrl(t *testing.T, path, httpMethod, method string, url string, expectedCode int) {
+	SetVars()
+	dtb, err := datastore.CreateNewDB()
+	if err != nil {
+		log.Fatalf("ошибка подключения к базе данных: %v", err)
+	}
+
+	rr := ProcessReq(t, dtb, nil, url, path, httpMethod, method)
+	code := rr.Code
+	if code != expectedCode {
+		t.Errorf("Ожидался код состояния ответа: %d, но получен: %d", expectedCode, code)
+	}
+}
+
+type OKTest struct {
+	Url              string
+	ExpectedQuantity int
+}
+
+func ProcessGetBidsCorrectUrls(t *testing.T, path, httpMethod, method string, okTests []OKTest) {
+	SetVars()
+	dtb, err := datastore.CreateNewDB()
+	if err != nil {
+		log.Fatalf("ошибка подключения к базе данных: %v", err)
+	}
+
+	for idx := 0; idx < len(okTests); idx++ {
+		url := okTests[idx].Url
+		rr := ProcessReq(t, dtb, nil, url, path, httpMethod, method)
+		CheckCodeAndMime(t, rr)
+
+		var nbd []bid.Bid
+		decoder := json.NewDecoder(rr.Body)
+		err := decoder.Decode(&nbd)
+		if err != nil {
+			t.Fatalf("Ошибка десериализации тела ответа сервера: %v", err)
+		}
+
+		expectedQuantity := okTests[idx].ExpectedQuantity
+		quantity := len(nbd)
+		if quantity != expectedQuantity {
+			t.Fatalf("Ожидалось количество предложений: %d, но получено: %d", expectedQuantity, quantity)
+		}
+	}
+}
+
+func HandleBidResponse(t *testing.T, rr *httptest.ResponseRecorder) *bid.Bid {
+	CheckCodeAndMime(t, rr)
+
+	var nbd bid.Bid
+	err := json.Unmarshal(rr.Body.Bytes(), &nbd)
+	if err != nil {
+		t.Fatalf("Ошибка десериализации тела ответа сервера: %v", err)
+	}
+
+	return &nbd
+}
+
+func deleteBid(t *testing.T, dtb *sql.DB, bidId string) {
+	query := "DELETE FROM bid WHERE id = $1;"
+
+	result, err := dtb.Exec(query, bidId)
+	if err != nil {
+		t.Fatalf("Ошибка удаления предложения: %v", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if rowsAffected == 0 {
+		t.Fatalf("Ошибка: предложение не было удалено: %v", err)
 	}
 }

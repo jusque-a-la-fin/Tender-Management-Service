@@ -3,11 +3,12 @@ package tender
 import (
 	"database/sql"
 	"fmt"
+	"tendermanagement/internal"
 )
 
 // EditTender изменяет параметры существующего тендера
 func (repo *TenderDBRepository) EditTender(tei TenderEditionInput, tenderID, username string) (*Tender, int, error) {
-	valid, err := CheckUser(repo.dtb, username)
+	valid, err := internal.CheckUser(repo.dtb, username)
 	if !valid || err != nil {
 		return nil, 401, err
 	}

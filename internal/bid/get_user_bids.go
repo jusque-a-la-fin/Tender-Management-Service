@@ -3,8 +3,8 @@ package bid
 import "fmt"
 
 // GetUserBids получает список предложений текущего пользователя
-func (repo *BidDBRepository) GetUserBids(username string, startIndex, endIndex int32) ([]*Bid, int, error) {
-	valid, err := checkUsername(repo.dtb, username)
+func (repo *BidDBRepository) GetUserBids(username string, limit, offset int32) ([]Bid, int, error) {
+	valid, err := checkAuthorName(repo.dtb, username)
 	if !valid || err != nil {
 		return nil, 401, err
 	}
@@ -29,9 +29,19 @@ func (repo *BidDBRepository) GetUserBids(username string, startIndex, endIndex i
         FROM 
             bid b
         JOIN 
-            bid_versions bv ON b.id = bv.bid_id
+            bid_versions bv ON b.id = bv.bid_id AND b.current_version = bv.version
         WHERE 
-            b.author_id = $1;`
+            b.author_id = $1`
+
+	if limit > 0 {
+		query = fmt.Sprintf("%s LIMIT %d", query, limit)
+	}
+
+	if offset > 0 {
+		query = fmt.Sprintf("%s OFFSET %d", query, offset)
+	}
+
+	query = fmt.Sprintf("%s;", query)
 
 	rows, err := repo.dtb.Query(query, userID)
 	if err != nil {
@@ -39,9 +49,9 @@ func (repo *BidDBRepository) GetUserBids(username string, startIndex, endIndex i
 	}
 	defer rows.Close()
 
-	var bids []*Bid
+	var bids []Bid
 	for rows.Next() {
-		bid := &Bid{}
+		bid := Bid{}
 		if err := rows.Scan(&bid.ID, &bid.Status, &bid.TenderID, &bid.AuthorType, &bid.AuthorID,
 			&bid.Version, &bid.CreatedAt, &bid.Name, &bid.Version); err != nil {
 			return nil, -1, fmt.Errorf("ошибка от метода `Scan`, пакет sql: %v", err)

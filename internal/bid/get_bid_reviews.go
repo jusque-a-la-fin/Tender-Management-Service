@@ -3,24 +3,59 @@ package bid
 import (
 	"database/sql"
 	"fmt"
-	"tendermanagement/internal/tender"
+	"tendermanagement/internal"
 )
 
 // GetBidReviews просматривает отзывы на прошлые предложения
-func (repo *BidDBRepository) GetBidReviews(bri BidReviewsInput) ([]*BidReview, int, error) {
-	valid, err := tender.CheckTender(repo.dtb, bri.TenderId)
-	if !valid || err != nil {
-		return nil, 404, err
-	}
-
-	valid, err = checkUsername(repo.dtb, bri.RequesterUsername)
+func (repo *BidDBRepository) GetBidReviews(bri BidReviewsInput) ([]BidReview, int, error) {
+	valid, err := internal.CheckUser(repo.dtb, bri.RequesterUsername)
 	if !valid || err != nil {
 		return nil, 401, err
 	}
 
-	var userID string
-	err = repo.dtb.QueryRow("SELECT id FROM employee WHERE username = $1", bri.RequesterUsername).Scan(&userID)
+	valid, err = checkAuthorName(repo.dtb, bri.AuthorUsername)
+	if !valid || err != nil {
+		return nil, 401, err
+	}
+
+	valid, err = CheckTender(repo.dtb, bri.TenderId)
+	if !valid || err != nil {
+		return nil, 404, err
+	}
+
+	var authorId string
+	err = repo.dtb.QueryRow("SELECT id FROM employee WHERE username = $1;", bri.AuthorUsername).Scan(&authorId)
+	if err == sql.ErrNoRows {
+		err = repo.dtb.QueryRow("SELECT id FROM organization WHERE name = $1;", bri.AuthorUsername).Scan(&authorId)
+		if err != nil {
+			return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение id для username: %v", err)
+		}
+	}
+
+	if err != nil && err != sql.ErrNoRows {
+		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение id для username: %v", err)
+	}
+
+	var hasRights bool
+	query := `SELECT EXISTS (
+		SELECT 1
+		FROM bid
+		WHERE tender_id = $1 AND author_id = $2
+	) AS has_rights;`
+
+	err = repo.dtb.QueryRow(query, bri.TenderId, authorId).Scan(&hasRights)
 	if err != nil {
+		return nil, -1, fmt.Errorf("ошибка запроса к базе данных во время проверки прав доступа на отправку решения по предложению: %v", err)
+	}
+
+	if !hasRights {
+		return nil, 403, nil
+	}
+
+	var requesterUserID string
+	err = repo.dtb.QueryRow("SELECT id FROM employee WHERE username = $1;", bri.RequesterUsername).Scan(&requesterUserID)
+	if err != nil {
+
 		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение id для username: %v", err)
 	}
 
@@ -30,14 +65,13 @@ func (repo *BidDBRepository) GetBidReviews(bri BidReviewsInput) ([]*BidReview, i
 		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение id для username: %v", err)
 	}
 
-	var hasRights bool
-	query := `SELECT EXISTS (
+	query = `SELECT EXISTS (
                   SELECT 1
-                  FROM organization_responsible
+                  FROM tender
                   WHERE organization_id = $1 AND user_id = $2
               ) AS has_rights;`
 
-	err = repo.dtb.QueryRow(query, organizationID, userID).Scan(&hasRights)
+	err = repo.dtb.QueryRow(query, organizationID, requesterUserID).Scan(&hasRights)
 	if err != nil {
 		return nil, -1, fmt.Errorf("ошибка запроса к базе данных во время проверки прав доступа на отправку решения по предложению: %v", err)
 	}
@@ -46,12 +80,7 @@ func (repo *BidDBRepository) GetBidReviews(bri BidReviewsInput) ([]*BidReview, i
 		return nil, 403, nil
 	}
 
-	valid, err = checkUsername(repo.dtb, bri.AuthorUsername)
-	if !valid || err != nil {
-		return nil, 401, err
-	}
-
-	reviews, err := getReviews(repo.dtb, bri.TenderId, bri.AuthorUsername)
+	reviews, err := getReviews(repo.dtb, authorId, bri.TenderId, bri.Limit, bri.Offset)
 	if err != nil {
 		return nil, -1, err
 	}
@@ -60,44 +89,36 @@ func (repo *BidDBRepository) GetBidReviews(bri BidReviewsInput) ([]*BidReview, i
 		return nil, 404, nil
 	}
 
-	if bri.Offset != tender.NoValue && bri.EndIndex != tender.NoValue {
-		return reviews[bri.Offset:bri.EndIndex], 200, nil
-	}
-
 	return reviews, 200, nil
 }
 
-func getReviews(dtb *sql.DB, tenderId, authorUsername string) ([]*BidReview, error) {
-	var bidID string
-	query := `SELECT id FROM bid WHERE tender_id = $1`
-	err := dtb.QueryRow(query, tenderId).Scan(&bidID)
+func getReviews(dtb *sql.DB, authorId, tenderId string, limit, offset int32) ([]BidReview, error) {
+	var bidId string
+	err := dtb.QueryRow("SELECT id FROM bid WHERE author_id = $1 AND tender_id = $2;", authorId, tenderId).Scan(&bidId)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка запроса к базе данных: извлечение id предложения: %v", err)
+		return nil, fmt.Errorf("ошибка запроса к базе данных: извлечение id для предложения: %v", err)
 	}
 
-	var userID string
-	err = dtb.QueryRow("SELECT id FROM employee WHERE username = $1", authorUsername).Scan(&userID)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка запроса к базе данных: извлечение id для username: %v", err)
+	var reviews []BidReview
+
+	query := "SELECT id, description, created_at FROM bid_review WHERE bid_id = $1"
+	if limit > 0 {
+		query = fmt.Sprintf("%s LIMIT %d", query, limit)
 	}
 
-	var reviews []*BidReview
+	if offset > 0 {
+		query = fmt.Sprintf("%s OFFSET %d", query, offset)
+	}
 
-	query = `
-        SELECT brw.id, brw.description, brw.created_at
-        FROM bid_review brw
-        JOIN bid_versions bdv ON bdv.bid_id = brw.bid_id
-        WHERE bdv.bid_id = $1 AND brw.user_id = $2;
-    `
-
-	rows, err := dtb.Query(query, bidID, userID)
+	query = fmt.Sprintf("%s;", query)
+	rows, err := dtb.Query(query, bidId)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка запроса к базе данных: извлечение параметров отзывов: %v", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		review := &BidReview{}
+		review := BidReview{}
 		if err := rows.Scan(&review.ID, &review.Description, &review.CreatedAt); err != nil {
 			return nil, fmt.Errorf("ошибка от метода `Scan`, пакет sql: %v", err)
 		}
@@ -107,6 +128,5 @@ func getReviews(dtb *sql.DB, tenderId, authorUsername string) ([]*BidReview, err
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("ошибка во время итерирования по строкам, возвращенным запросом: %v", err)
 	}
-
 	return reviews, nil
 }

@@ -7,7 +7,7 @@ import (
 
 // EditBid редактирует параметры предложения
 func (repo *BidDBRepository) EditBid(bdi BidEditionInput, bidID, username string) (*Bid, int, error) {
-	valid, err := checkUsername(repo.dtb, username)
+	valid, err := checkAuthorName(repo.dtb, username)
 	if !valid || err != nil {
 		return nil, 401, err
 	}

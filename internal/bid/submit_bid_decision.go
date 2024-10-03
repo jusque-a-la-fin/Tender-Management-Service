@@ -3,38 +3,39 @@ package bid
 import (
 	"database/sql"
 	"fmt"
+	"tendermanagement/internal"
 	"tendermanagement/internal/tender"
 )
 
-// SubmitBidDecision отправляет решение (одобряет или отклоняет) по предложению
-func (repo *BidDBRepository) SubmitBidDecision(bsi BidSubmissionInput) (*Bid, int, error) {
+// SubmitBidDecision добавляет решение (одобрение или отклонение) по предложению
+func (repo *BidDBRepository) AddBidDecisions(bsi BidSubmissionInput) (string, string, int, error) {
 	valid, err := сheckBid(repo.dtb, bsi.BidID)
 	if !valid || err != nil {
-		return nil, 404, err
+		return "", "", 404, err
 	}
 
-	valid, err = tender.CheckUser(repo.dtb, bsi.Username)
+	valid, err = internal.CheckUser(repo.dtb, bsi.Username)
 	if !valid || err != nil {
-		return nil, 401, err
+		return "", "", 401, err
 	}
 
 	var tenderID string
 	query := `SELECT tender_id FROM bid WHERE id = $1;`
 	err = repo.dtb.QueryRow(query, bsi.BidID).Scan(&tenderID)
 	if err != nil {
-		return nil, -1, err
+		return "", "", -1, err
 	}
 
 	var userID string
 	err = repo.dtb.QueryRow("SELECT id FROM employee WHERE username = $1", bsi.Username).Scan(&userID)
 	if err != nil {
-		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение id для username: %v", err)
+		return "", "", -1, fmt.Errorf("ошибка запроса к базе данных: извлечение id для username: %v", err)
 	}
 
 	var organizationID string
 	err = repo.dtb.QueryRow("SELECT organization_id FROM tender WHERE id = $1", tenderID).Scan(&organizationID)
 	if err != nil {
-		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: извлечение id для username: %v", err)
+		return "", "", -1, fmt.Errorf("ошибка запроса к базе данных: извлечение id для username: %v", err)
 	}
 
 	var hasRights bool
@@ -46,11 +47,11 @@ func (repo *BidDBRepository) SubmitBidDecision(bsi BidSubmissionInput) (*Bid, in
 
 	err = repo.dtb.QueryRow(query, organizationID, userID).Scan(&hasRights)
 	if err != nil {
-		return nil, -1, fmt.Errorf("ошибка запроса к базе данных во время проверки прав доступа на отправку решения по предложению: %v", err)
+		return "", "", -1, fmt.Errorf("ошибка запроса к базе данных во время проверки прав доступа на отправку решения по предложению: %v", err)
 	}
 
 	if !hasRights {
-		return nil, 403, nil
+		return "", "", 403, nil
 	}
 
 	query = `
@@ -59,33 +60,29 @@ func (repo *BidDBRepository) SubmitBidDecision(bsi BidSubmissionInput) (*Bid, in
 
 	result, err := repo.dtb.Exec(query, bsi.Decision, organizationID, userID, bsi.BidID)
 	if err != nil {
-		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: добавление нового решения по предложению: %v", err)
+		return "", "", -1, fmt.Errorf("ошибка запроса к базе данных: добавление нового решения по предложению: %v", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return nil, -1, fmt.Errorf("ошибка от метода `RowsAffected`, пакет sql: %v", err)
+		return "", "", -1, fmt.Errorf("ошибка от метода `RowsAffected`, пакет sql: %v", err)
 	}
 
 	if rowsAffected == 0 {
-		return nil, -1, fmt.Errorf("ошибка запроса к базе данных: не добавилось решение по предложению")
+		return "", "", -1, fmt.Errorf("ошибка запроса к базе данных: не добавилось решение по предложению")
 	}
+	return tenderID, organizationID, 200, nil
+}
 
-	rejectedCount, err := getDecisionCount(repo.dtb, Rejected, organizationID, bsi.BidID)
+func (repo *BidDBRepository) MakeFinalDecision(bidID, tenderID, organizationID string) (*Bid, int, error) {
+	rejectedCount, err := getDecisionCount(repo.dtb, Rejected, organizationID, bidID)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	if rejectedCount > 0 {
-		// отклонение предложения
-		err = CancelBid(repo.dtb, bsi.BidID)
-		if err != nil {
-			return nil, -1, err
-		}
-
-	} else {
+	if rejectedCount == 0 {
 		// согласование предложения
-		approvedCount, err := getDecisionCount(repo.dtb, Approved, organizationID, bsi.BidID)
+		approvedCount, err := getDecisionCount(repo.dtb, Approved, organizationID, bidID)
 		if err != nil {
 			return nil, -1, err
 		}
@@ -101,7 +98,7 @@ func (repo *BidDBRepository) SubmitBidDecision(bsi BidSubmissionInput) (*Bid, in
 		}
 	}
 
-	bid, err := GetBid(repo.dtb, bsi.BidID)
+	bid, err := GetBid(repo.dtb, bidID)
 	if err != nil {
 		return nil, -1, err
 	}
@@ -109,27 +106,27 @@ func (repo *BidDBRepository) SubmitBidDecision(bsi BidSubmissionInput) (*Bid, in
 }
 
 // CancelBid отменяет предложение
-func CancelBid(dtb *sql.DB, bidID string) error {
-	query := `
-	UPDATE bid
-	SET status = $1
-	WHERE id = $2;`
+// func CancelBid(dtb *sql.DB, bidID string) error {
+// 	query := `
+// 	UPDATE bid
+// 	SET status = $1
+// 	WHERE id = $2;`
 
-	result, err := dtb.Exec(query, Canceled, bidID)
-	if err != nil {
-		return fmt.Errorf("ошибка запроса к базе данных: отклонение предложения: %v", err)
-	}
+// 	result, err := dtb.Exec(query, Canceled, bidID)
+// 	if err != nil {
+// 		return fmt.Errorf("ошибка запроса к базе данных: отклонение предложения: %v", err)
+// 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("ошибка от метода `RowsAffected`, пакет sql: %v", err)
-	}
+// 	rowsAffected, err := result.RowsAffected()
+// 	if err != nil {
+// 		return fmt.Errorf("ошибка от метода `RowsAffected`, пакет sql: %v", err)
+// 	}
 
-	if rowsAffected == 0 {
-		return fmt.Errorf("ошибка запроса к базе данных: не отклонилось предложение")
-	}
-	return nil
-}
+// 	if rowsAffected == 0 {
+// 		return fmt.Errorf("ошибка запроса к базе данных: не отклонилось предложение")
+// 	}
+// 	return nil
+// }
 
 // GetDecisionCount считает количество решений для одного из типов: 'Approved', 'Rejected'
 func getDecisionCount(dtb *sql.DB, decisionType DecisionEnum, organizationID, bidID string) (int, error) {
@@ -143,7 +140,7 @@ func getDecisionCount(dtb *sql.DB, decisionType DecisionEnum, organizationID, bi
 
 	err := dtb.QueryRow(query, decisionType, organizationID, bidID).Scan(&decisionCount)
 	if err != nil {
-		return -1, fmt.Errorf("ошибка запроса к базе данных: подсчет решений `Approved` для данного предложения")
+		return -1, fmt.Errorf("ошибка запроса к базе данных: подсчет решений `Approved` или `Rejected` для данного предложения")
 	}
 	return decisionCount, nil
 }

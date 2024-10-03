@@ -1,34 +1,62 @@
 package bid_test
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
+	"sync"
 	"tendermanagement/internal/bid"
 	"tendermanagement/internal/datastore"
+	"tendermanagement/internal/tender"
 	"tendermanagement/test"
 	"testing"
 )
 
-type SubmitDecisionResult struct {
-	url       string
-	decision  bid.DecisionEnum
-	bidStatus bid.StatusEnum
+type SubmitDecision struct {
+	url      string
+	decision bid.DecisionEnum
+	userId   string
 }
 
-var sdtests = []SubmitDecisionResult{
-	{
-		url:       "/bids/3820469e-0a87-43d2-b139-0eb5e253cbfa/submit_decision?decision=Approved&username=user11",
-		decision:  "Approved",
-		bidStatus: "Canceled",
+type SubmitDecisionTestOK struct {
+	suds         []SubmitDecision
+	tenderStatus tender.StatusEnum
+}
+
+var exampleTenderId = "67309f56-3d5f-45ee-873c-11262ca16543"
+
+var sdtests = []SubmitDecisionTestOK{
+	{suds: []SubmitDecision{{url: "/bids/3820469e-0a87-43d2-b139-0eb5e253cbfa/submit_decision?decision=Approved&username=user11",
+		decision: "Approved", userId: "550e8400-e29b-41d4-a716-44665544000b"},
+		{url: "/bids/3820469e-0a87-43d2-b139-0eb5e253cbfa/submit_decision?decision=Approved&username=user12",
+			decision: "Approved", userId: "550e8400-e29b-41d4-a716-44665544000c"}},
+		tenderStatus: "Created",
 	},
-	{
-		url:       "/bids/3820469e-0a87-43d2-b139-0eb5e253cbfa/submit_decision?decision=Rejected&username=user11",
-		decision:  "Rejected",
-		bidStatus: "Canceled",
+
+	{suds: []SubmitDecision{{url: "/bids/3820469e-0a87-43d2-b139-0eb5e253cbfa/submit_decision?decision=Approved&username=user11",
+		decision: "Approved", userId: "550e8400-e29b-41d4-a716-44665544000b"},
+		{url: "/bids/3820469e-0a87-43d2-b139-0eb5e253cbfa/submit_decision?decision=Approved&username=user12",
+			decision: "Approved", userId: "550e8400-e29b-41d4-a716-44665544000c"},
+		{url: "/bids/3820469e-0a87-43d2-b139-0eb5e253cbfa/submit_decision?decision=Approved&username=user13",
+			decision: "Approved", userId: "550e8400-e29b-41d4-a716-44665544000d"}},
+		tenderStatus: "Closed",
+	},
+
+	{suds: []SubmitDecision{{url: "/bids/3820469e-0a87-43d2-b139-0eb5e253cbfa/submit_decision?decision=Approved&username=user11",
+		decision: "Approved", userId: "550e8400-e29b-41d4-a716-44665544000b"},
+		{url: "/bids/3820469e-0a87-43d2-b139-0eb5e253cbfa/submit_decision?decision=Approved&username=user12",
+			decision: "Approved", userId: "550e8400-e29b-41d4-a716-44665544000c"},
+		{url: "/bids/3820469e-0a87-43d2-b139-0eb5e253cbfa/submit_decision?decision=Approved&username=user13",
+			decision: "Approved", userId: "550e8400-e29b-41d4-a716-44665544000d"},
+		{url: "/bids/3820469e-0a87-43d2-b139-0eb5e253cbfa/submit_decision?decision=Rejected&username=user14",
+			decision: "Rejected", userId: "550e8400-e29b-41d4-a716-44665544000e"}},
+		tenderStatus: "Created",
 	},
 }
 
-// TestSubmitBidDecisionOK тестирует принятия решения по предложению
+var path = "/bids/{bidId}/submit_decision"
+
+// TestSubmitBidDecisionOK тестирует принятие решения по предложению
 func TestSubmitBidDecisionOK(t *testing.T) {
 	test.SetVars()
 	dtb, err := datastore.CreateNewDB()
@@ -37,35 +65,63 @@ func TestSubmitBidDecisionOK(t *testing.T) {
 	}
 
 	for _, sdtest := range sdtests {
-		path := "/bids/{bidId}/submit_decision"
-		rr := test.ProcessReq(t, dtb, nil, sdtest.url, path, http.MethodPut, "SubmitBidDecision")
-		bid := handleBidResponse(t, rr)
-		status := sdtest.bidStatus
-		expectedStatus := bid.Status
-		if status != expectedStatus {
-			t.Errorf("Ожидалось значение Status у предложения: %s, но получено: %s", expectedStatus, status)
+		var wg sync.WaitGroup
+
+		for _, sud := range sdtest.suds {
+			wg.Add(1)
+
+			go func(sud SubmitDecision) {
+				defer wg.Done()
+
+				rr := test.ProcessReq(t, dtb, nil, sud.url, path, http.MethodPut, "SubmitBidDecision")
+				nbid := test.HandleBidResponse(t, rr)
+
+				var decision string
+				query := "SELECT decision FROM bid_decisions WHERE bid_id = $1 AND user_id = $2;"
+				_ = dtb.QueryRow(query, nbid.ID, sud.userId).Scan(&decision)
+
+				expectedDecision := sud.decision
+				if bid.DecisionEnum(decision) != expectedDecision {
+					t.Errorf("Ожидалось решение по предложению: %s, но получено: %s", expectedDecision, decision)
+				}
+			}(sud)
 		}
 
-		var decision string
-		query := "SELECT decision FROM bid_decisions WHERE bid_id = $1;"
-		_ = dtb.QueryRow(query, bid.ID).Scan(&decision)
+		wg.Wait()
 
-		expectedDecision := sdtest.decision
-		if status != expectedStatus {
-			t.Errorf("Ожидалось решение по предложению: %s, но получено: %s", expectedDecision, decision)
-		}
+		var tenderStatus tender.StatusEnum
+		query := "SELECT status FROM tender WHERE id = $1;"
+		_ = dtb.QueryRow(query, exampleTenderId).Scan(&tenderStatus)
 
-		var tenderID string
-		query = "SELECT tender_id FROM bid WHERE id = $1;"
-		_ = dtb.QueryRow(query, bid.ID).Scan(&tenderID)
-
-		var tenderStatus string
-		query = "SELECT status FROM tender WHERE id = $1;"
-		_ = dtb.QueryRow(query, tenderID).Scan(&tenderStatus)
-
-		expectedTenderStatus := "Closed"
-		if decision == "Approved" && tenderStatus != expectedTenderStatus {
+		expectedTenderStatus := sdtest.tenderStatus
+		if tenderStatus != expectedTenderStatus {
 			t.Errorf("Ожидался статус тендера: %s, но получен: %s", expectedTenderStatus, tenderStatus)
 		}
+
+		rollbackDecision(t, dtb)
 	}
+}
+
+func rollbackDecision(t *testing.T, dtb *sql.DB) {
+	query := `
+	UPDATE tender
+	SET status = 'Created'
+	WHERE id = $1;`
+
+	_, err := dtb.Exec(query, exampleTenderId)
+	if err != nil {
+		t.Errorf("ошибка запроса к базе данных: откат статуса тендера: %v", err)
+	}
+
+	query = `
+	TRUNCATE TABLE bid_decisions;`
+
+	_, err = dtb.Exec(query)
+	if err != nil {
+		t.Errorf("ошибка запроса к базе данных: очистка решений: %v", err)
+	}
+
+	var tenderStatus tender.StatusEnum
+	query = "SELECT status FROM tender WHERE id = $1;"
+	_ = dtb.QueryRow(query, exampleTenderId).Scan(&tenderStatus)
 }

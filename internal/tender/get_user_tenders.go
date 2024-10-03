@@ -3,6 +3,7 @@ package tender
 import (
 	"fmt"
 	"sort"
+	"tendermanagement/internal"
 
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
@@ -10,7 +11,7 @@ import (
 
 // GetUserTenders получает список тендеров текущего пользователя
 func (repo *TenderDBRepository) GetUserTenders(startIndex, endIndex int32, username string) ([]Tender, int, error) {
-	valid, err := CheckUser(repo.dtb, username)
+	valid, err := internal.CheckUser(repo.dtb, username)
 	if !valid || err != nil {
 		return nil, 401, err
 	}

@@ -12,14 +12,14 @@ func (repo *BidDBRepository) CreateBid(bci BidCreationInput) (*Bid, int, error) 
 		return nil, 401, err
 	}
 
-	valid, err = checkCreationRights(repo.dtb, bci.AuthorId, bci.AuthorType)
-	if !valid || err != nil {
-		return nil, 403, err
-	}
-
 	valid, err = tender.CheckTender(repo.dtb, bci.TenderID)
 	if !valid || err != nil {
 		return nil, 404, err
+	}
+
+	valid, err = checkCreationRights(repo.dtb, bci.AuthorId, bci.AuthorType)
+	if !valid || err != nil {
+		return nil, 403, err
 	}
 
 	var status StatusEnum = "Created"

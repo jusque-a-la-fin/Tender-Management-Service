@@ -31,16 +31,6 @@ func (hnd *BidHandler) GetBidStatus(wrt http.ResponseWriter, rqt *http.Request) 
 		return
 	}
 
-	newStatus := rqt.URL.Query().Get("status")
-	statusLen := utf8.RuneCountInString(newStatus)
-	if statusLen == 0 {
-		errSend := handlers.SendBadReq(wrt)
-		if errSend != nil {
-			log.Printf("ошибка отправки сообщения о bad request: %v\n", errSend)
-		}
-		return
-	}
-
 	username := rqt.URL.Query().Get("username")
 	usernameLen := utf8.RuneCountInString(username)
 	if usernameLen == 0 {
@@ -54,7 +44,9 @@ func (hnd *BidHandler) GetBidStatus(wrt http.ResponseWriter, rqt *http.Request) 
 	bidStatus, code, err := hnd.BidRepo.GetBidStatus(bidID, username)
 	if err != nil {
 		log.Println(err)
-		return
+		if !handlers.CheckCode(code) {
+			return
+		}
 	}
 
 	switch code {
@@ -76,7 +68,7 @@ func (hnd *BidHandler) GetBidStatus(wrt http.ResponseWriter, rqt *http.Request) 
 
 	case 404:
 		err := "Предложение не найдено"
-		errResp := handlers.RespondWithError(wrt, err, http.StatusForbidden)
+		errResp := handlers.RespondWithError(wrt, err, http.StatusNotFound)
 		if errResp != nil {
 			log.Printf("ошибка отправки сообщения об ошибке: %d (%s): %v\n", code, err, errResp)
 		}

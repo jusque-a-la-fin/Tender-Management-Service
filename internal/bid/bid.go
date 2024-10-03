@@ -47,15 +47,15 @@ type BidReviewsInput struct {
 	TenderId          string
 	AuthorUsername    string
 	RequesterUsername string
+	Limit             int32
 	Offset            int32
-	EndIndex          int32
 }
 
 type GetBidsInput struct {
 	TenderId string
 	Username string
+	Limit    int32
 	Offset   int32
-	EndIndex int32
 }
 
 type BidRollbackInput struct {

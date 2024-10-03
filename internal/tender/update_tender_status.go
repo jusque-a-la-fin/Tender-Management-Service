@@ -2,11 +2,12 @@ package tender
 
 import (
 	"fmt"
+	"tendermanagement/internal"
 )
 
 // UpdateTenderStatus изменяет статус тендера по его идентификатору
 func (repo *TenderDBRepository) UpdateTenderStatus(tenderID, newStatus, username string) (*Tender, int, error) {
-	valid, err := CheckUser(repo.dtb, username)
+	valid, err := internal.CheckUser(repo.dtb, username)
 	if !valid || err != nil {
 		return nil, 401, err
 	}

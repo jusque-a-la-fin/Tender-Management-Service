@@ -1,11 +1,13 @@
 package bid
 
 import (
+	"sync"
 	bids "tendermanagement/internal/bid"
 )
 
 type BidHandler struct {
-	BidRepo bids.BidRepo
+	BidRepo      bids.BidRepo
+	DecisionOnce sync.Once
 }
 
 // BidCreationReq - тело запроса для создания предложения для существующего тендера

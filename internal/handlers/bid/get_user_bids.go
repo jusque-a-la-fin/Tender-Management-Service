@@ -30,7 +30,7 @@ func (hnd *BidHandler) GetUserBids(wrt http.ResponseWriter, rqt *http.Request) {
 		return
 	}
 
-	var limit int32 = 0
+	limit := tender.NoValue
 	limitStr := rqt.URL.Query().Get("limit")
 	if limitStr != "" {
 		limitInt, err := strconv.Atoi(limitStr)
@@ -73,12 +73,13 @@ func (hnd *BidHandler) GetUserBids(wrt http.ResponseWriter, rqt *http.Request) {
 			return
 		}
 	}
-	endIndex := offset + limit
 
-	bids, code, err := hnd.BidRepo.GetUserBids(username, offset, endIndex)
+	bids, code, err := hnd.BidRepo.GetUserBids(username, limit, offset)
 	if err != nil {
 		log.Println(err)
-		return
+		if !handlers.CheckCode(code) {
+			return
+		}
 	}
 
 	if code == 401 {

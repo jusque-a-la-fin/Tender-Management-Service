@@ -22,7 +22,7 @@ func TestEditTenderOK1(t *testing.T) {
 
 	rr := getBidEditionResponseRecorder(t, body)
 
-	bid := handleBidResponse(t, rr)
+	bid := test.HandleBidResponse(t, rr)
 	name := bid.Name
 	bName := body.Name
 	if name != bName {
@@ -46,7 +46,7 @@ func TestEditTenderOK2(t *testing.T) {
 
 	rr := getBidEditionResponseRecorder(t, body)
 
-	bid := handleBidResponse(t, rr)
+	bid := test.HandleBidResponse(t, rr)
 	name := bid.Name
 	bName := body.Name
 	if name != bName {
@@ -63,7 +63,7 @@ func TestEditTenderOK3(t *testing.T) {
 
 	rr := getBidEditionResponseRecorder(t, body)
 
-	bid := handleBidResponse(t, rr)
+	bid := test.HandleBidResponse(t, rr)
 	description := bid.Description
 	bDescription := body.Description
 	if description != bDescription {

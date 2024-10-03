@@ -3,6 +3,7 @@ package bid
 import (
 	"database/sql"
 	"fmt"
+	"tendermanagement/internal/tender"
 )
 
 // checkAuthor проверяет, существует ли пользователь/организация или корректен ли он/она.
@@ -11,10 +12,10 @@ func checkAuthor(dtb *sql.DB, authorId string, authorType AuthorTypeEnum) (bool,
 	var errStr string
 	switch authorType {
 	case User:
-		query = `SELECT EXISTS (SELECT 1 FROM employee WHERE id = $1)`
+		query = `SELECT EXISTS (SELECT 1 FROM employee WHERE id = $1);`
 		errStr = "ошибка запроса к базе данных: проверка корректности пользователя: "
 	case Organization:
-		query = `SELECT EXISTS (SELECT 1 FROM organization WHERE id = $1)`
+		query = `SELECT EXISTS (SELECT 1 FROM organization WHERE id = $1);`
 		errStr = "ошибка запроса к базе данных: проверка корректности организации: "
 	}
 
@@ -66,9 +67,9 @@ func checkEditionRights(dtb *sql.DB, bidID, authorID string) (bool, error) {
 	return hasRights, nil
 }
 
-// checkUsername проверяет, существует ли c таким именем пользователь/организация или корректен ли он/она.
-func checkUsername(dtb *sql.DB, username string) (bool, error) {
-	query := `SELECT EXISTS (SELECT 1 FROM employee WHERE username = $1)`
+// checkAuthorName проверяет, существует ли c таким именем пользователь/организация или корректен ли он/она.
+func checkAuthorName(dtb *sql.DB, username string) (bool, error) {
+	query := `SELECT EXISTS (SELECT 1 FROM employee WHERE username = $1);`
 	var exists bool
 	err := dtb.QueryRow(query, username).Scan(&exists)
 	if err != nil {
@@ -76,7 +77,7 @@ func checkUsername(dtb *sql.DB, username string) (bool, error) {
 	}
 
 	if !exists {
-		query = `SELECT EXISTS (SELECT 1 FROM organization WHERE name = $1)`
+		query = `SELECT EXISTS (SELECT 1 FROM organization WHERE name = $1);`
 		err := dtb.QueryRow(query, username).Scan(&exists)
 		if err != nil {
 			return false, fmt.Errorf("%s%v", "ошибка запроса к базе данных: проверка корректности организации: ", err)
@@ -89,10 +90,32 @@ func checkUsername(dtb *sql.DB, username string) (bool, error) {
 // checkBid проверяет, существует ли предложение
 func сheckBid(dtb *sql.DB, bidID string) (bool, error) {
 	var exists bool
-	query := `SELECT EXISTS(SELECT 1 FROM bid WHERE id = $1)`
+	query := `SELECT EXISTS(SELECT 1 FROM bid WHERE id = $1);`
 	err := dtb.QueryRow(query, bidID).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("ошибка запроса к базе данных: проверка существования предложения: %v", err)
+	}
+
+	return exists, nil
+}
+
+// checkTender проверяет, связано ли хоть одно предложение с тендером, имеющим данный tender_id
+func CheckTender(dtb *sql.DB, tenderID string) (bool, error) {
+	valid, err := tender.CheckTender(dtb, tenderID)
+	if !valid || err != nil {
+		return false, err
+	}
+
+	var exists bool
+	query := `SELECT EXISTS (
+		SELECT 1
+		FROM bid
+		WHERE tender_id = $1
+	);`
+
+	err = dtb.QueryRow(query, tenderID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("ошибка запроса к базе данных: проверка, есть ли предложения для этого тендера: %v", err)
 	}
 
 	return exists, nil

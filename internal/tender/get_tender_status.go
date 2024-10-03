@@ -3,11 +3,12 @@ package tender
 import (
 	"database/sql"
 	"fmt"
+	"tendermanagement/internal"
 )
 
 // GetTenderStatus получает статус тендера по его уникальному идентификатору
 func (repo *TenderDBRepository) GetTenderStatus(username, tenderID string) (string, int, error) {
-	valid, err := CheckUser(repo.dtb, username)
+	valid, err := internal.CheckUser(repo.dtb, username)
 	if !valid || err != nil {
 		return "", 401, err
 	}

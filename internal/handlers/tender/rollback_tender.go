@@ -57,7 +57,9 @@ func (hnd *TenderHandler) RollbackTender(wrt http.ResponseWriter, rqt *http.Requ
 	tdr, code, err := hnd.TenderRepo.RollbackTender(version, tenderID, username)
 	if err != nil {
 		log.Println(err)
-		return
+		if !handlers.CheckCode(code) {
+			return
+		}
 	}
 
 	switch code {

@@ -1,6 +1,7 @@
 package bid_test
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -24,7 +25,7 @@ func TestSubmitBidFeedbackOK(t *testing.T) {
 	path := "/bids/{bidId}/feedback"
 
 	rr := test.ProcessReq(t, dtb, nil, url, path, http.MethodPut, "SubmitBidFeedback")
-	bid := handleBidResponse(t, rr)
+	bid := test.HandleBidResponse(t, rr)
 
 	var userID string
 	dtb.QueryRow("SELECT id FROM employee WHERE username = $1", username).Scan(&userID)
@@ -35,5 +36,28 @@ func TestSubmitBidFeedbackOK(t *testing.T) {
 
 	if review != expectedReview {
 		t.Errorf("Ожидался отзыв по предложению: %s, но получен: %s", expectedReview, review)
+	}
+
+	deleteBidReview(t, dtb)
+}
+
+func deleteBidReview(t *testing.T, dtb *sql.DB) {
+	query := `DELETE FROM bid_review 
+	          WHERE id = 
+			  (SELECT id FROM bid_review
+               ORDER BY created_at DESC LIMIT 1);`
+
+	result, err := dtb.Exec(query)
+	if err != nil {
+		t.Fatalf("Ошибка удаления предложения: %v", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if rowsAffected == 0 {
+		t.Fatalf("Ошибка: предложение не было удалено: %v", err)
 	}
 }

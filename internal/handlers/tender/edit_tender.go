@@ -85,7 +85,9 @@ func (hnd *TenderHandler) EditTender(wrt http.ResponseWriter, rqt *http.Request)
 	tdr, code, err := hnd.TenderRepo.EditTender(trq, tenderID, username)
 	if err != nil {
 		log.Println(err)
-		return
+		if !handlers.CheckCode(code) {
+			return
+		}
 	}
 
 	switch code {
