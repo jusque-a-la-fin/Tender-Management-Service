@@ -1,7 +1,7 @@
 # Tender-Management-Service
 ## Как запустить:
 ```bash
-git clone git@github.com:jusque-a-la-fin/Tender-Management-Service.git && cd Tender-Management-Service && docker compose up --build
+git clone git@github.com:jusque-a-la-fin/Tender-Management-Service.git && cd Tender-Management-Service && sudo docker compose up
 ```
 ## Замечания
 -  Таблицы для остальных сущностей здесь: [init.sql](init.sql) 
